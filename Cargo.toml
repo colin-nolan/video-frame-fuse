@@ -1,0 +1,12 @@
+[package]
+name = "video-frame-fuse"
+version = "0.1.0"
+authors = ["Colin Nolan <cn580@alumni.york.ac.uk>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#ffmpeg-next = "4.3.8"
+#image = "0.23.12"
+opencv = "0.46.3"
