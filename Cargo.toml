@@ -7,6 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#ffmpeg-next = "4.3.8"
-#image = "0.23.12"
 opencv = "0.46.3"
+#fuse = "0.3.1"
+fuse = { git = "https://github.com/zargony/fuse-rs", rev="39fde4a5c47ce370d228ac190f950bd835db7f47" }
+# 2nd order dependencies of fuse
+time = "0.1.38"
+libc = "0.2.51"
+# End 2nd order dependencies of fuse

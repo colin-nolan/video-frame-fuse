@@ -25,6 +25,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cfg-if"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
 name = "clang"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -49,6 +55,31 @@ name = "dunce"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2641c4a7c0c4101df53ea572bffdc561c146f6c2eb09e4df02bc4811e3feeb4"
+
+[[package]]
+name = "fuse"
+version = "0.4.0-dev"
+source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+dependencies = [
+ "fuse-abi",
+ "fuse-sys",
+ "libc",
+ "log",
+ "thread-scoped",
+]
+
+[[package]]
+name = "fuse-abi"
+version = "0.4.0-dev"
+source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+
+[[package]]
+name = "fuse-sys"
+version = "0.4.0-dev"
+source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+dependencies = [
+ "pkg-config",
+]
 
 [[package]]
 name = "glob"
@@ -76,6 +107,15 @@ name = "libc"
 version = "0.2.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1482821306169ec4d07f6aca392a4681f66c75c9918aa49641a2595db64053cb"
+
+[[package]]
+name = "log"
+version = "0.4.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
+dependencies = [
+ "cfg-if",
+]
 
 [[package]]
 name = "maplit"
@@ -192,12 +232,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fdf1b9db47230893d76faad238fd6097fd6d6a9245cd7a4d90dbd639536bbd2"
 
 [[package]]
+name = "thread-scoped"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcbb6aa301e5d3b0b5ef639c9a9c7e2f1c944f177b460c04dc24c69b1fa2bd99"
+
+[[package]]
 name = "thread_local"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "time"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
+dependencies = [
+ "libc",
+ "wasi",
+ "winapi",
 ]
 
 [[package]]
@@ -210,5 +267,36 @@ checksum = "b00bca6106a5e23f3eee943593759b7fcddb00554332e856d990c893966879fb"
 name = "video-frame-fuse"
 version = "0.1.0"
 dependencies = [
+ "fuse",
+ "libc",
  "opencv",
+ "time",
 ]
+
+[[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
+
+[[package]]
+name = "winapi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
+dependencies = [
+ "winapi-i686-pc-windows-gnu",
+ "winapi-x86_64-pc-windows-gnu",
+]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
