@@ -8,9 +8,7 @@ edition = "2018"
 
 [dependencies]
 opencv = "0.46.3"
-#fuse = "0.3.1"
 fuse = { git = "https://github.com/zargony/fuse-rs", rev="39fde4a5c47ce370d228ac190f950bd835db7f47" }
-# 2nd order dependencies of fuse
-time = "0.1.38"
-libc = "0.2.51"
-# End 2nd order dependencies of fuse
+users = "0.11"
+lazy_static = "1.4.0"
+genawaiter = { version = "0.99.1", features = ["futures03", "proc_macro"] }
