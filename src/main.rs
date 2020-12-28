@@ -21,5 +21,5 @@ fn main() {
         &mountpoint,
         &options,
     )
-    .unwrap();
+    .expect(&format!("Could not mount filesystem to: {}", mountpoint));
 }
