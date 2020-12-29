@@ -1,19 +1,12 @@
 use crate::frames;
 use crate::frames::{close_video, frame_to_jpg, get_frame, get_number_of_frames, open_video};
-use crate::nodes;
-use crate::nodes::{
-    create_directory_attributes, FrameFileFuseNode, FuseNode, FuseNodeStore, ROOT_INODE_NUMBER,
-};
+use crate::nodes::{create_directory_attributes, DirectoryFuseNode, FuseNode, FuseNodeStore};
 use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
 };
 use opencv::videoio::VideoCapture;
-use std::borrow::{Borrow, BorrowMut};
-use std::collections::HashMap;
-use std::convert::TryInto;
 use std::ffi::OsStr;
-use std::time::{Duration, SystemTime};
-use users::{get_current_gid, get_current_uid};
+use std::time::Duration;
 
 const ENOENT: i32 = 2;
 
@@ -33,20 +26,18 @@ impl<'a> VideoFileSystem<'a> {
         let mut video = open_video(video_location);
 
         let mut node_store = FuseNodeStore::new();
-        let by_frame_number_inode_number =
-            node_store.insert_directory("by_frame", ROOT_INODE_NUMBER);
+        let root_directory_inode_number = node_store.get_root_directory().get_inode_number();
+        let by_frame_directory_inode_number =
+            node_store.create_and_insert_directory("by-frame", root_directory_inode_number);
 
         let number_of_frames = get_number_of_frames(&mut video);
         for frame_number in 1..number_of_frames as u64 {
-            eprintln!("Processing frame: {}", frame_number);
-            // TODO: move to directories and gen files on request
-            let frame = get_frame(frame_number, &mut video);
-            let frame_as_jpg = frame_to_jpg(&frame);
-            node_store.insert_frame_file(
-                frame_number,
-                frame_as_jpg.len() as u64,
-                by_frame_number_inode_number,
+            let directory = DirectoryFuseNode::new(
+                &format!("frame-{}", frame_number),
+                create_directory_attributes(node_store.create_inode_number()),
+                Box::new(|| vec![]),
             );
+            node_store.insert_directory(directory, by_frame_directory_inode_number);
         }
 
         return VideoFileSystem {
@@ -56,6 +47,11 @@ impl<'a> VideoFileSystem<'a> {
 
         // TODO: close video regardless of failure
         // close_video(video);
+    }
+
+    fn get_frame_jpg(&mut self, frame_number: u64) -> Vec<u8> {
+        let frame = get_frame(frame_number, &mut self.video);
+        return frame_to_jpg(&frame);
     }
 }
 
@@ -166,8 +162,8 @@ impl Filesystem for VideoFileSystem<'_> {
                 .get_nodes_in_directory(ino)
                 .into_iter()
                 .map(|fuse_node| {
-                    let mut attributes;
-                    let mut name;
+                    let attributes;
+                    let name;
                     match fuse_node {
                         FuseNode::Directory(x) => {
                             attributes = x.attributes;

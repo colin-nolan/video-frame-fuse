@@ -3,7 +3,6 @@ use opencv::core::{Mat, Vector};
 use opencv::imgcodecs::{imencode, imwrite};
 use opencv::prelude::VideoCaptureTrait;
 use opencv::videoio::{VideoCapture, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES};
-use std::borrow::Borrow;
 
 pub fn get_number_of_frames(video_capture: &VideoCapture) -> u64 {
     video_capture.get(CAP_PROP_FRAME_COUNT).unwrap() as u64
