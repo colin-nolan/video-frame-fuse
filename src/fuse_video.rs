@@ -1,12 +1,21 @@
 use crate::frames;
-use crate::frames::{close_video, frame_to_jpg, get_frame, get_number_of_frames, open_video};
-use crate::nodes::{create_directory_attributes, DirectoryFuseNode, FuseNode, FuseNodeStore};
+use crate::frames::ImageType::{JPG, PNG};
+use crate::frames::{
+    close_video, convert_frame, get_frame, get_frame_from_video, get_number_of_frames, open_video,
+    read_frame, Data, ImageType,
+};
+use crate::nodes::{
+    create_directory_attributes, create_file_attributes, DirectoryFuseNode, FileFuseNode, FuseNode,
+    FuseNodeStore,
+};
 use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
 };
 use opencv::videoio::VideoCapture;
 use std::ffi::OsStr;
 use std::time::Duration;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 const ENOENT: i32 = 2;
 
@@ -22,7 +31,7 @@ pub struct VideoFileSystem<'a> {
 }
 
 impl<'a> VideoFileSystem<'a> {
-    pub fn new(video_location: &str) -> Self {
+    pub fn new(video_location: &'static str) -> Self {
         let mut video = open_video(video_location);
 
         let mut node_store = FuseNodeStore::new();
@@ -33,13 +42,32 @@ impl<'a> VideoFileSystem<'a> {
         let number_of_frames = get_number_of_frames(&mut video);
         for frame_number in 1..number_of_frames as u64 {
             let directory = DirectoryFuseNode::new(
-                &format!("frame-{}", frame_number),
+                format!("frame-{}", frame_number),
                 create_directory_attributes(node_store.create_inode_number()),
-                Box::new(|| vec![]),
+                Box::new(move |directory_inode_number| {
+                    return ImageType::iter()
+                        .map(|image_type: ImageType| {
+                            let name = format!("frame-{}.{}", frame_number, image_type.to_string());
+                            let name2 = name.clone();
+                            Data {
+                                name,
+                                data_fetcher: Box::new(move || {
+                                    eprintln!("Fetching data for: {}", name2);
+                                    read_frame(video_location, frame_number, image_type)
+                                    // let mut video = open_video(video_location);
+                                    // TODO: share frame cache?
+                                    // let frame = get_frame(frame_number, &mut video);
+                                    // convert_frame(&frame, image_type)
+                                }),
+                            }
+                        })
+                        .collect();
+                }),
             );
             node_store.insert_directory(directory, by_frame_directory_inode_number);
         }
 
+        // TODO: need video?
         return VideoFileSystem {
             video,
             nodes: node_store,
@@ -47,11 +75,6 @@ impl<'a> VideoFileSystem<'a> {
 
         // TODO: close video regardless of failure
         // close_video(video);
-    }
-
-    fn get_frame_jpg(&mut self, frame_number: u64) -> Vec<u8> {
-        let frame = get_frame(frame_number, &mut self.video);
-        return frame_to_jpg(&frame);
     }
 }
 
@@ -107,34 +130,8 @@ impl Filesystem for VideoFileSystem<'_> {
             }
         };
 
-        let frame = get_frame(node.frame_id, &mut self.video);
-        let frame_as_jpg = frame_to_jpg(&frame);
-
-        reply.data(&frame_as_jpg[offset as usize..offset as usize + size as usize]);
-
-        eprintln!("read: {}", ino);
-
-        // if ino == 2 {
-        //     let frame = frames::get_frame(0, &mut self.video);
-        //
-        //     let data = frame_to_jpg(&frame);
-        //
-        //     eprintln!("number_frames: {}", get_number_of_frames(&self.video));
-        //     eprintln!("frame_data.len: {}", data.len());
-        //     eprintln!("data.len: {}", data.len());
-        //     eprintln!("offset: {}", offset);
-        //     eprintln!("size: {}", size);
-        //
-        //     // let custom_bytes = [155, 255, 87];
-        //     // reply.data(&custom_bytes[offset as usize..]);
-        //
-        //
-        //
-        //     eprintln!("Data replied")
-        // } else {
-        //     eprintln!("error ENOENT");
-        //     reply.error(ENOENT);
-        // }
+        let data = (node.data.data_fetcher)();
+        reply.data(&data[offset as usize..offset as usize + size as usize]);
     }
 
     fn readdir(
@@ -167,11 +164,11 @@ impl Filesystem for VideoFileSystem<'_> {
                     match fuse_node {
                         FuseNode::Directory(x) => {
                             attributes = x.attributes;
-                            name = x.name.clone();
+                            name = x.name.to_string();
                         }
                         FuseNode::File(x) => {
                             attributes = x.attributes;
-                            name = x.get_name();
+                            name = x.name.to_string();
                         }
                     };
                     (attributes.ino as u64, attributes.kind, name)

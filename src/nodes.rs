@@ -1,7 +1,12 @@
+use crate::frames::Data;
+use crate::fuse_video::VideoFileSystem;
 use fuse::{FileAttr, FileType};
+use itertools::Itertools;
+use opencv::videoio::VideoCapture;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::ops::Deref;
 use std::time::SystemTime;
 use users::{get_current_gid, get_current_uid};
 
@@ -26,7 +31,7 @@ pub fn create_directory_attributes(inode_number: u64) -> FileAttr {
     };
 }
 
-fn create_file_attributes(inode_number: u64, size: u64) -> FileAttr {
+pub fn create_file_attributes(inode_number: u64, size: u64) -> FileAttr {
     return FileAttr {
         ino: inode_number,
         size,
@@ -48,34 +53,31 @@ fn create_file_attributes(inode_number: u64, size: u64) -> FileAttr {
 #[derive(Clone)]
 pub enum FuseNode<'a> {
     Directory(&'a DirectoryFuseNode),
-    File(&'a FrameFileFuseNode),
+    File(&'a FileFuseNode),
 }
 
 pub struct DirectoryFuseNode {
     pub attributes: FileAttr,
     pub name: String,
-    children_getter: Box<dyn Fn() -> Vec<u64>>,
-    extra_children: Vec<u64>,
+    // TODO: consider naming given updates
+    children_generator: Option<Box<dyn Fn(u64) -> Vec<Data>>>,
+    children_inode_numbers: Vec<u64>,
+    children_to_generate: bool,
 }
 
-impl<'a> DirectoryFuseNode {
+impl DirectoryFuseNode {
     pub fn new(
-        name: &str,
+        name: String,
         attributes: FileAttr,
-        children_getter: Box<dyn Fn() -> Vec<u64>>,
+        children_generator: Box<dyn Fn(u64) -> Vec<Data>>,
     ) -> Self {
         DirectoryFuseNode {
             attributes,
-            name: name.to_string(),
-            children_getter,
-            extra_children: Default::default(),
+            name,
+            children_generator: Some(children_generator),
+            children_inode_numbers: Default::default(),
+            children_to_generate: true,
         }
-    }
-
-    pub fn get_children(&self) -> Vec<u64> {
-        let mut children = (self.children_getter)();
-        children.extend(self.extra_children.to_vec());
-        return children;
     }
 
     pub fn get_inode_number(&self) -> u64 {
@@ -83,25 +85,22 @@ impl<'a> DirectoryFuseNode {
     }
 }
 
-// TODO: move away from frame
-pub struct FrameFileFuseNode {
+// TODO: move away from frame?
+pub struct FileFuseNode {
     pub attributes: FileAttr,
-    pub frame_id: u64,
+    pub name: String,
     pub directory_inode_number: u64,
+    pub data: Data,
 }
 
-impl FrameFileFuseNode {
-    pub fn get_name(&self) -> String {
-        return format!("frame-{}.jpg", self.frame_id);
-    }
-
+impl FileFuseNode {
     pub fn get_inode_number(&self) -> u64 {
         self.attributes.ino
     }
 }
 
 pub struct FuseNodeStore<'a> {
-    file_nodes: HashMap<u64, Box<FrameFileFuseNode>>,
+    file_nodes: HashMap<u64, Box<FileFuseNode>>,
     directory_nodes: HashMap<u64, Box<DirectoryFuseNode>>,
     // XXX: it would be more efficient to store the references but hit lifetime issues...
     current_inode_number: u64,
@@ -120,8 +119,9 @@ impl<'a> FuseNodeStore<'a> {
             DirectoryFuseNode {
                 attributes: create_directory_attributes(ROOT_INODE_NUMBER),
                 name: "root".to_string(),
-                children_getter: Box::new(|| vec![]),
-                extra_children: Default::default(),
+                children_generator: None,
+                children_inode_numbers: Default::default(),
+                children_to_generate: false,
             },
             ROOT_INODE_NUMBER,
         );
@@ -157,8 +157,9 @@ impl<'a> FuseNodeStore<'a> {
         let node = DirectoryFuseNode {
             attributes: create_directory_attributes(inode_number),
             name: name.to_string(),
-            children_getter: Box::new(|| vec![]),
-            extra_children: vec![],
+            children_generator: None,
+            children_inode_numbers: vec![],
+            children_to_generate: false,
         };
         self.insert_directory(node, parent_directory_inode_number);
         return inode_number;
@@ -173,15 +174,24 @@ impl<'a> FuseNodeStore<'a> {
                 "Parent directory does not exist: {}",
                 parent_directory_inode_number
             ));
-        parent_directory.extra_children.push(inode_number);
+        parent_directory.children_inode_numbers.push(inode_number);
     }
 
-    pub fn insert_file(
+    pub fn create_and_insert_file(
         &mut self,
-        file_node: FrameFileFuseNode,
+        name: &str,
+        mut data: Data,
         directory_inode_number: u64,
     ) -> u64 {
         let inode_number = self.create_inode_number();
+
+        let file_node = FileFuseNode {
+            attributes: create_file_attributes(inode_number, (data.data_fetcher)().len() as u64),
+            name: name.to_string(),
+            directory_inode_number,
+            data,
+        };
+
         self.file_nodes.insert(inode_number, Box::new(file_node));
         self.directory_nodes
             .get_mut(&directory_inode_number)
@@ -189,13 +199,14 @@ impl<'a> FuseNodeStore<'a> {
                 "Could not get directory: {}",
                 directory_inode_number
             ))
-            .extra_children
+            .children_inode_numbers
             .push(inode_number);
         return inode_number;
     }
 
-    pub fn get_file_node(&self, inode_number: u64) -> Option<&FrameFileFuseNode> {
+    pub fn get_file_node(&self, inode_number: u64) -> Option<&FileFuseNode> {
         match self.file_nodes.get(&inode_number) {
+            // Some(boxed_node) => Some(&boxed_node),
             Some(boxed_node) => Some(boxed_node.as_ref()),
             None => None,
         }
@@ -219,50 +230,90 @@ impl<'a> FuseNodeStore<'a> {
         }
     }
 
-    pub fn lookup_node(&self, name: &str, directory_inode_number: u64) -> Option<FuseNode> {
-        let directory = self
-            .directory_nodes
-            .get(&directory_inode_number)
-            .expect(&format!(
-                "Directory with inode number does not exist: {}",
-                directory_inode_number
-            ));
-
+    pub fn lookup_node(&mut self, name: &str, directory_inode_number: u64) -> Option<FuseNode> {
         // TODO: specialised data structure to
-        for child_inode_number in directory.get_children() {
-            match self.get_node(child_inode_number) {
-                Some(fuse_node) => {
-                    let node_name = match fuse_node {
-                        FuseNode::Directory(x) => x.name.clone(),
-                        FuseNode::File(x) => x.get_name(),
-                    };
-                    if node_name == name {
-                        return Some(fuse_node);
-                    }
-                }
-                None => {}
+        for child_node in self.get_nodes_in_directory(directory_inode_number) {
+            let node_name = match child_node {
+                FuseNode::Directory(x) => x.name.as_str(),
+                FuseNode::File(x) => x.name.as_str(),
             };
+            if node_name == name {
+                return Some(child_node);
+            }
+            // match self.get_node(child_inode_number) {
+            //     Some(fuse_node) => {
+            //         let node_name = match fuse_node {
+            //             FuseNode::Directory(x) => x.name.clone(),
+            //             FuseNode::File(x) => x.get_name(),
+            //         };
+            //         if node_name == name {
+            //             return Some(fuse_node);
+            //         }
+            //     }
+            //     None => {}
+            // };
         }
         return None;
     }
 
-    pub fn get_nodes_in_directory(&self, directory_inode_number: u64) -> Vec<FuseNode> {
-        return self
+    pub fn get_nodes_in_directory(&mut self, directory_inode_number: u64) -> Vec<FuseNode> {
+        let non_existent_director_error =
+            &format!("Non-existent directory: {}", directory_inode_number);
+
+        let directory = self
             .directory_nodes
             .get(&directory_inode_number)
-            .expect(&format!(
-                "Non-existent directory {}",
-                directory_inode_number
-            ))
-            .get_children()
-            .iter()
-            .map(|inode_number| {
-                self.get_node(*inode_number).expect(&format!(
-                    "Directory contains node that does not exist: {}",
-                    inode_number
-                ))
-            })
-            .collect();
+            .expect(non_existent_director_error);
+
+        if directory.children_to_generate {
+            for image_data in directory.children_generator.as_ref().expect(
+                "Expected children generator because flag indicated that there were children \
+                    to generate",
+            )(directory.get_inode_number())
+            {
+                self.create_and_insert_file(
+                    &image_data.name.clone(),
+                    image_data,
+                    directory_inode_number,
+                );
+            }
+        }
+
+        self.directory_nodes
+            .get_mut(&directory_inode_number)
+            .expect(non_existent_director_error)
+            .children_to_generate = false;
+
+        let directory = self
+            .directory_nodes
+            .get(&directory_inode_number)
+            .expect(non_existent_director_error);
+
+        let mut children = vec![];
+        for child_inode_number in &directory.children_inode_numbers {
+            let child_node = self
+                .get_node(*child_inode_number)
+                .expect(non_existent_director_error);
+            children.push(child_node);
+        }
+
+        eprintln!(
+            "children: {:?}",
+            children
+                .clone()
+                .into_iter()
+                .map(|x| match x {
+                    FuseNode::Directory(y) => {
+                        y.get_inode_number()
+                    }
+                    FuseNode::File(y) => {
+                        y.get_inode_number()
+                    }
+                })
+                .collect_vec()
+        );
+
+        return children;
     }
 
     pub fn create_inode_number(&mut self) -> u64 {
