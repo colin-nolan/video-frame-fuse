@@ -1,6 +1,5 @@
 use crate::nodes::FileFuseNode;
 use cached::proc_macro::cached;
-use genawaiter::yield_;
 use opencv::core::{Mat, Vector};
 use opencv::imgcodecs::{imencode, imwrite};
 use opencv::prelude::VideoCaptureTrait;
@@ -23,12 +22,28 @@ pub enum ImageType {
 
 // TODO: move to appropriate module
 // #[derive(Clone)]
-pub struct Data {
+pub struct FileInformation {
     pub name: String,
     pub data_fetcher: Box<dyn Fn() -> Vec<u8>>,
+    pub initially_listed: bool,
+    pub executable: bool,
 }
 
-impl Data {
+impl FileInformation {
+    pub fn new(
+        name: &str,
+        data_fetcher: Box<dyn Fn() -> Vec<u8>>,
+        listed: bool,
+        executable: bool,
+    ) -> Self {
+        FileInformation {
+            name: name.to_string(),
+            data_fetcher,
+            initially_listed: listed,
+            executable,
+        }
+    }
+
     pub fn get_data(&self) -> Vec<u8> {
         return (self.data_fetcher)();
     }
@@ -58,6 +73,7 @@ pub fn save_frame(frame: &Mat, filename: &str) {
     imwrite(filename, &mut frame.clone(), parameters).unwrap();
 }
 
+// TODO: cache size
 #[cached]
 pub fn get_frame_from_video(video_location: &'static str, frame_number: u64) -> Mat {
     let mut video_capture = open_video(video_location);
@@ -66,6 +82,7 @@ pub fn get_frame_from_video(video_location: &'static str, frame_number: u64) -> 
     return frame;
 }
 
+// TODO: cache size
 #[cached]
 pub fn read_frame(
     video_location: &'static str,

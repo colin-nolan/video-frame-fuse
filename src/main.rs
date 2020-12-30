@@ -1,11 +1,9 @@
 #[macro_use]
 extern crate lazy_static;
 
-#[macro_use]
-extern crate cached;
-
 mod frames;
 mod fuse_video;
+mod manifest;
 mod nodes;
 
 use fuse_video::VideoFileSystem;

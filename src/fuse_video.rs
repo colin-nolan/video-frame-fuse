@@ -2,15 +2,18 @@ use crate::frames;
 use crate::frames::ImageType::{JPG, PNG};
 use crate::frames::{
     close_video, convert_frame, get_frame, get_frame_from_video, get_number_of_frames, open_video,
-    read_frame, Data, ImageType,
+    read_frame, FileInformation, ImageType,
 };
+use crate::manifest::DirectoryManifest;
 use crate::nodes::{
     create_directory_attributes, create_file_attributes, DirectoryFuseNode, FileFuseNode, FuseNode,
     FuseNodeStore,
 };
+use csv::Writer;
 use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
 };
+use opencv::core::error;
 use opencv::videoio::VideoCapture;
 use std::ffi::OsStr;
 use std::time::Duration;
@@ -41,27 +44,44 @@ impl<'a> VideoFileSystem<'a> {
 
         let number_of_frames = get_number_of_frames(&mut video);
         for frame_number in 1..number_of_frames as u64 {
+            let frame_name = format!("frame-{}", frame_number);
+
             let directory = DirectoryFuseNode::new(
-                format!("frame-{}", frame_number),
+                frame_name.clone(),
                 create_directory_attributes(node_store.create_inode_number()),
                 Box::new(move |directory_inode_number| {
-                    return ImageType::iter()
+                    let mut directory_manifest = DirectoryManifest::new();
+
+                    let mut file_informations: Vec<FileInformation> = ImageType::iter()
                         .map(|image_type: ImageType| {
-                            let name = format!("frame-{}.{}", frame_number, image_type.to_string());
-                            let name2 = name.clone();
-                            Data {
-                                name,
-                                data_fetcher: Box::new(move || {
-                                    eprintln!("Fetching data for: {}", name2);
+                            let name = format!("{}.{}", frame_name, image_type.to_string());
+                            directory_manifest.add(image_type, &name);
+                            FileInformation::new(
+                                &name,
+                                Box::new(move || {
                                     read_frame(video_location, frame_number, image_type)
-                                    // let mut video = open_video(video_location);
-                                    // TODO: share frame cache?
-                                    // let frame = get_frame(frame_number, &mut video);
-                                    // convert_frame(&frame, image_type)
                                 }),
-                            }
+                                false,
+                                false,
+                            )
                         })
                         .collect();
+
+                    file_informations.push(FileInformation::new(
+                        "manifest.csv",
+                        Box::new(move || directory_manifest.to_vec()),
+                        true,
+                        false,
+                    ));
+
+                    file_informations.push(FileInformation::new(
+                        "initialise.sh",
+                        Box::new(move || include_bytes!("../resources/initialise.sh").to_vec()),
+                        true,
+                        true,
+                    ));
+
+                    return file_informations;
                 }),
             );
             node_store.insert_directory(directory, by_frame_directory_inode_number);
@@ -81,35 +101,55 @@ impl<'a> VideoFileSystem<'a> {
 impl Filesystem for VideoFileSystem<'_> {
     fn lookup(&mut self, _req: &Request, parent: u64, name: &OsStr, reply: ReplyEntry) {
         let name = name.to_str().expect("Could not convert OsStr to string");
-        match self.nodes.lookup_node(name, parent) {
+
+        let mut requires_listing = false;
+        let mut inode_number;
+        let node = self.nodes.lookup_node(name, parent);
+        match node {
             Some(fuse_node) => {
                 let attributes = match fuse_node {
                     FuseNode::Directory(x) => x.attributes,
-                    FuseNode::File(x) => x.attributes,
+                    FuseNode::File(x) => {
+                        requires_listing = !x.listed;
+                        x.get_attributes()
+                    }
                 };
+                inode_number = attributes.ino;
                 reply.entry(&TTL, &attributes, 0);
             }
             None => {
-                eprintln!("No node: name={}, parent={}", name, parent);
                 reply.error(ENOENT);
+                return;
             }
+        };
+
+        // Note: we cannot change the status in the above match because we are already borrowing
+        //       mut (mut because the directory listing may be generated on call).
+        if requires_listing {
+            self.nodes
+                .get_file_node_mut(inode_number)
+                .expect(&format!(
+                    "Could not get mutable copy of file node: {}",
+                    inode_number
+                ))
+                .listed = true;
         }
     }
 
-    fn getattr(&mut self, _req: &Request, ino: u64, reply: ReplyAttr) {
-        match self.nodes.get_node(ino) {
+    fn getattr(&mut self, _req: &Request, inode_number: u64, reply: ReplyAttr) {
+        match self.nodes.get_node(inode_number) {
             Some(fuse_node) => {
                 let attributes = match fuse_node {
                     FuseNode::Directory(x) => x.attributes,
-                    FuseNode::File(x) => x.attributes,
+                    FuseNode::File(x) => x.get_attributes(),
                 };
                 reply.attr(&TTL, &attributes);
             }
             None => {
-                eprintln!("No node (getattr): {:?}", ino);
+                eprintln!("No node (getattr): {:?}", inode_number);
                 reply.error(ENOENT);
             }
-        }
+        };
     }
 
     fn read(
@@ -121,17 +161,18 @@ impl Filesystem for VideoFileSystem<'_> {
         size: u32,
         reply: ReplyData,
     ) {
-        let node = match self.nodes.get_file_node(ino) {
+        let node = match self.nodes.get_file_node_mut(ino) {
             Some(x) => x,
             None => {
-                eprintln!("No file node");
                 reply.error(ENOENT);
                 return;
             }
         };
 
-        let data = (node.data.data_fetcher)();
+        let data = node.get_data();
         reply.data(&data[offset as usize..offset as usize + size as usize]);
+
+        node.listed = true;
     }
 
     fn readdir(
@@ -142,13 +183,11 @@ impl Filesystem for VideoFileSystem<'_> {
         offset: i64,
         mut reply: ReplyDirectory,
     ) {
-        let node = self.nodes.get_node(ino);
+        let node = self.nodes.get_directory_node(ino);
         if node.is_none() {
-            eprintln!("No node");
             reply.error(ENOENT);
             return;
         }
-        // TODO: ensure directory
 
         let mut entries = vec![
             (ino, FileType::Directory, ".".to_string()),
@@ -158,6 +197,10 @@ impl Filesystem for VideoFileSystem<'_> {
             self.nodes
                 .get_nodes_in_directory(ino)
                 .into_iter()
+                .filter(|fuse_node| match fuse_node {
+                    FuseNode::Directory(_) => true,
+                    FuseNode::File(x) => x.listed,
+                })
                 .map(|fuse_node| {
                     let attributes;
                     let name;
@@ -167,7 +210,7 @@ impl Filesystem for VideoFileSystem<'_> {
                             name = x.name.to_string();
                         }
                         FuseNode::File(x) => {
-                            attributes = x.attributes;
+                            attributes = x.get_attributes();
                             name = x.name.to_string();
                         }
                     };
