@@ -67,16 +67,16 @@ impl<'a> VideoFileSystem<'a> {
                         })
                         .collect();
 
-                    file_informations.push(FileInformation::new(
+                    file_informations.push(FileInformation::new_with_data(
                         "manifest.csv",
-                        Box::new(move || directory_manifest.to_vec()),
+                        directory_manifest.to_vec(),
                         true,
                         false,
                     ));
 
-                    file_informations.push(FileInformation::new(
+                    file_informations.push(FileInformation::new_with_data(
                         "initialise.sh",
-                        Box::new(move || include_bytes!("../resources/initialise.sh").to_vec()),
+                        include_bytes!("../resources/initialise.sh").to_vec(),
                         true,
                         true,
                     ));

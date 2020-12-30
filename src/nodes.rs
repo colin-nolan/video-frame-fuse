@@ -31,7 +31,6 @@ pub fn create_directory_attributes(inode_number: u64) -> FileAttr {
 }
 
 pub fn create_file_attributes(inode_number: u64, size: u64, executable: bool) -> FileAttr {
-    println!("executable: {}", executable);
     return FileAttr {
         ino: inode_number,
         size,
@@ -201,11 +200,18 @@ impl<'a> FuseNodeStore<'a> {
         directory_inode_number: u64,
     ) -> u64 {
         let inode_number = self.create_inode_number();
+        let data_fetcher = match file_information.data_fetcher {
+            Some(x) => x,
+            None => {
+                let data = file_information.data.unwrap().clone();
+                Box::new(move || data.to_owned())
+            }
+        };
 
         let file_node = FileFuseNode {
             name: file_information.name.to_string(),
             directory_inode_number,
-            data_fetcher: file_information.data_fetcher,
+            data_fetcher,
             listed: file_information.initially_listed,
             executable: file_information.executable,
             inode_number,
