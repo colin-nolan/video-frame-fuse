@@ -1,6 +1,5 @@
-use crate::frames::ImageType;
+use crate::video_processing::ImageType;
 use csv::Writer;
-use std::borrow::Borrow;
 
 const DIRECTORY_MANIFEST_HEADER: &[&str; 2] = &["image-type", "location"];
 
@@ -11,10 +10,7 @@ pub struct DirectoryManifest {
 
 impl DirectoryManifest {
     pub fn new() -> Self {
-        let mut manifest = DirectoryManifest {
-            records: vec![], // writer: Writer::from_writer(vec![]),
-        };
-        return manifest;
+        DirectoryManifest { records: vec![] }
     }
 
     pub fn add(&mut self, image_type: ImageType, location: &str) {

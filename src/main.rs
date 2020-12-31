@@ -1,11 +1,11 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod frames;
+mod file_system;
 mod fuse_video;
-mod manifest;
-mod nodes;
+mod video_processing;
 
+use fuse;
 use fuse_video::VideoFileSystem;
 use std::ffi::OsStr;
 

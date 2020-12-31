@@ -1,11 +1,7 @@
-use crate::frames::FileInformation;
-use crate::fuse_video::VideoFileSystem;
+use crate::file_system::data::FileInformation;
 use fuse::{FileAttr, FileType};
-use opencv::videoio::VideoCapture;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::ops::Deref;
 use std::time::SystemTime;
 use users::{get_current_gid, get_current_uid};
 
@@ -69,16 +65,26 @@ pub struct DirectoryFuseNode {
 
 impl DirectoryFuseNode {
     pub fn new(
-        name: String,
+        name: &str,
         attributes: FileAttr,
         children_generator: Box<dyn Fn(u64) -> Vec<FileInformation>>,
     ) -> Self {
         DirectoryFuseNode {
             attributes,
-            name,
+            name: name.to_string(),
             file_information_generator: Some(children_generator),
             children_inode_numbers: Default::default(),
             children_to_generate: true,
+        }
+    }
+
+    pub fn new_empty(name: &str, attributes: FileAttr) -> Self {
+        DirectoryFuseNode {
+            attributes,
+            name: name.to_string(),
+            file_information_generator: None,
+            children_inode_numbers: Default::default(),
+            children_to_generate: false,
         }
     }
 
@@ -161,7 +167,16 @@ impl<'a> FuseNodeStore<'a> {
         let inode_number = directory.get_inode_number();
         self.directory_nodes
             .insert(inode_number, Box::new(directory));
-        self.add_child_to_directory(inode_number, parent_directory_inode_number);
+        // self.add_child_to_directory(inode_number, parent_directory_inode_number);
+
+        let parent_directory = self
+            .directory_nodes
+            .get_mut(&parent_directory_inode_number)
+            .expect(&format!(
+                "Parent directory does not exist: {}",
+                parent_directory_inode_number
+            ));
+        parent_directory.children_inode_numbers.push(inode_number);
     }
 
     // TODO: split into factory?
@@ -182,17 +197,17 @@ impl<'a> FuseNodeStore<'a> {
         return inode_number;
     }
 
-    // TODO: how many users of this function are there?
-    fn add_child_to_directory(&mut self, inode_number: u64, parent_directory_inode_number: u64) {
-        let parent_directory = self
-            .directory_nodes
-            .get_mut(&parent_directory_inode_number)
-            .expect(&format!(
-                "Parent directory does not exist: {}",
-                parent_directory_inode_number
-            ));
-        parent_directory.children_inode_numbers.push(inode_number);
-    }
+    // // TODO: how many users of this function are there?
+    // fn add_child_to_directory(&mut self, inode_number: u64, parent_directory_inode_number: u64) {
+    //     let parent_directory = self
+    //         .directory_nodes
+    //         .get_mut(&parent_directory_inode_number)
+    //         .expect(&format!(
+    //             "Parent directory does not exist: {}",
+    //             parent_directory_inode_number
+    //         ));
+    //     parent_directory.children_inode_numbers.push(inode_number);
+    // }
 
     pub fn create_and_insert_file(
         &mut self,

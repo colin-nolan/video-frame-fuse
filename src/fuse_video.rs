@@ -1,24 +1,18 @@
-use crate::frames;
-use crate::frames::ImageType::{JPG, PNG};
-use crate::frames::{
-    close_video, convert_frame, get_frame, get_frame_from_video, get_number_of_frames, open_video,
-    read_frame, FileInformation, ImageType,
+use crate::file_system::data::FileInformation;
+use crate::file_system::manifest::DirectoryManifest;
+use crate::file_system::nodes::{
+    create_directory_attributes, DirectoryFuseNode, FuseNode, FuseNodeStore,
 };
-use crate::manifest::DirectoryManifest;
-use crate::nodes::{
-    create_directory_attributes, create_file_attributes, DirectoryFuseNode, FileFuseNode, FuseNode,
-    FuseNodeStore,
+use crate::video_processing::{
+    get_frame_image, get_greyscale_frame_image, get_number_of_frames, open_video, ImageType,
 };
-use csv::Writer;
 use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
 };
-use opencv::core::error;
 use opencv::videoio::VideoCapture;
 use std::ffi::OsStr;
 use std::time::Duration;
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
 const ENOENT: i32 = 2;
 
@@ -34,6 +28,59 @@ pub struct VideoFileSystem<'a> {
 }
 
 impl<'a> VideoFileSystem<'a> {
+    fn abc(
+        directory_name: &str,
+        video_location: &'static str,
+        frame_number: u64,
+        directory_attributes_generator: &mut dyn FnMut() -> FileAttr,
+        image_data_generator: &'static dyn Fn(String, u64, ImageType) -> Vec<u8>,
+    ) -> DirectoryFuseNode {
+        let frame_name = format!("frame-{}", frame_number);
+
+        DirectoryFuseNode::new(
+            directory_name,
+            directory_attributes_generator(),
+            Box::new(move |_| {
+                let mut directory_manifest = DirectoryManifest::new();
+                let mut file_informations = vec![];
+
+                for image_type in ImageType::iter() {
+                    let file_name = format!("{}.{}", frame_name, image_type.to_string());
+
+                    directory_manifest.add(image_type, &file_name);
+                    file_informations.push(FileInformation::new(
+                        &file_name,
+                        Box::new(move || {
+                            image_data_generator(
+                                video_location.to_string(),
+                                frame_number,
+                                image_type,
+                            )
+                        }),
+                        false,
+                        false,
+                    ));
+                }
+
+                file_informations.push(FileInformation::new_with_data(
+                    "manifest.csv",
+                    directory_manifest.to_vec(),
+                    true,
+                    false,
+                ));
+
+                file_informations.push(FileInformation::new_with_data(
+                    "initialise.sh",
+                    include_bytes!("../resources/initialise.sh").to_vec(),
+                    true,
+                    true,
+                ));
+
+                return file_informations;
+            }),
+        )
+    }
+
     pub fn new(video_location: &'static str) -> Self {
         let mut video = open_video(video_location);
 
@@ -44,47 +91,34 @@ impl<'a> VideoFileSystem<'a> {
 
         let number_of_frames = get_number_of_frames(&mut video);
         for frame_number in 1..number_of_frames as u64 {
-            let frame_name = format!("frame-{}", frame_number);
+            // read_frame(video_location.to_owned(), frame_number, image_type)
 
-            let directory = DirectoryFuseNode::new(
-                frame_name.clone(),
+            let frame_directory = DirectoryFuseNode::new_empty(
+                &format!("frame-{}", frame_number),
                 create_directory_attributes(node_store.create_inode_number()),
-                Box::new(move |directory_inode_number| {
-                    let mut directory_manifest = DirectoryManifest::new();
-
-                    let mut file_informations: Vec<FileInformation> = ImageType::iter()
-                        .map(|image_type: ImageType| {
-                            let name = format!("{}.{}", frame_name, image_type.to_string());
-                            directory_manifest.add(image_type, &name);
-                            FileInformation::new(
-                                &name,
-                                Box::new(move || {
-                                    read_frame(video_location, frame_number, image_type)
-                                }),
-                                false,
-                                false,
-                            )
-                        })
-                        .collect();
-
-                    file_informations.push(FileInformation::new_with_data(
-                        "manifest.csv",
-                        directory_manifest.to_vec(),
-                        true,
-                        false,
-                    ));
-
-                    file_informations.push(FileInformation::new_with_data(
-                        "initialise.sh",
-                        include_bytes!("../resources/initialise.sh").to_vec(),
-                        true,
-                        true,
-                    ));
-
-                    return file_informations;
-                }),
             );
-            node_store.insert_directory(directory, by_frame_directory_inode_number);
+            let frame_directory_inode_number = frame_directory.get_inode_number();
+            node_store.insert_directory(frame_directory, by_frame_directory_inode_number);
+
+            let originals_directory = VideoFileSystem::abc(
+                "original",
+                video_location,
+                frame_number,
+                &mut || create_directory_attributes(node_store.create_inode_number()),
+                &get_frame_image,
+            );
+            // TODO: factory that creates and inserts
+            node_store.insert_directory(originals_directory, frame_directory_inode_number);
+
+            let greyscales_directory = VideoFileSystem::abc(
+                "greyscale",
+                video_location,
+                frame_number,
+                &mut || create_directory_attributes(node_store.create_inode_number()),
+                &get_greyscale_frame_image,
+            );
+            // TODO: factory that creates and inserts
+            node_store.insert_directory(greyscales_directory, frame_directory_inode_number);
         }
 
         // TODO: need video?
@@ -103,7 +137,7 @@ impl Filesystem for VideoFileSystem<'_> {
         let name = name.to_str().expect("Could not convert OsStr to string");
 
         let mut requires_listing = false;
-        let mut inode_number;
+        let inode_number;
         let node = self.nodes.lookup_node(name, parent);
         match node {
             Some(fuse_node) => {
