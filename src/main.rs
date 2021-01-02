@@ -1,6 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate log;
+extern crate serde;
+extern crate serde_yaml;
 
+mod configuration;
 mod file_system;
 mod fuse_video;
 mod video_processing;
@@ -10,9 +14,12 @@ use fuse_video::VideoFileSystem;
 use std::ffi::OsStr;
 
 fn main() {
+    env_logger::init();
+
     // let mountpoint = env::args_os().nth(1).unwrap();
-    let mountpoint = "/tmp/mountpoint";
-    let options = ["-o", "ro", "-o", "fsname=hello"]
+    let mountpoint = "/tmp/mountpoint2";
+    // let options = ["-o", "ro", "-o", "fsname=hello"]
+    let options = ["-o", "fsname=hello"]
         .iter()
         .map(|o| o.as_ref())
         .collect::<Vec<&OsStr>>();

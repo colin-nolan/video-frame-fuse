@@ -26,7 +26,19 @@ pub fn create_directory_attributes(inode_number: u64) -> FileAttr {
     };
 }
 
-pub fn create_file_attributes(inode_number: u64, size: u64, executable: bool) -> FileAttr {
+pub fn create_file_attributes(
+    inode_number: u64,
+    size: u64,
+    executable: bool,
+    writable: bool,
+) -> FileAttr {
+    let mut permissions = 0o440;
+    if writable {
+        permissions += 0o220;
+    }
+    if executable {
+        permissions += 0o110;
+    }
     return FileAttr {
         ino: inode_number,
         size,
@@ -36,10 +48,7 @@ pub fn create_file_attributes(inode_number: u64, size: u64, executable: bool) ->
         ctime: SystemTime::UNIX_EPOCH,
         crtime: SystemTime::UNIX_EPOCH,
         kind: FileType::RegularFile,
-        perm: match executable {
-            true => 0o550,
-            false => 0o440,
-        },
+        perm: permissions,
         nlink: 1,
         uid: get_current_uid(),
         gid: get_current_gid(),
@@ -57,10 +66,9 @@ pub enum FuseNode<'a> {
 pub struct DirectoryFuseNode {
     pub attributes: FileAttr,
     pub name: String,
-    // TODO: consider naming given updates
     file_information_generator: Option<Box<dyn Fn(u64) -> Vec<FileInformation>>>,
+    children_to_generate_from_file_information: bool,
     children_inode_numbers: Vec<u64>,
-    children_to_generate: bool,
 }
 
 impl DirectoryFuseNode {
@@ -74,17 +82,7 @@ impl DirectoryFuseNode {
             name: name.to_string(),
             file_information_generator: Some(children_generator),
             children_inode_numbers: Default::default(),
-            children_to_generate: true,
-        }
-    }
-
-    pub fn new_empty(name: &str, attributes: FileAttr) -> Self {
-        DirectoryFuseNode {
-            attributes,
-            name: name.to_string(),
-            file_information_generator: None,
-            children_inode_numbers: Default::default(),
-            children_to_generate: false,
+            children_to_generate_from_file_information: true,
         }
     }
 
@@ -93,13 +91,9 @@ impl DirectoryFuseNode {
     }
 }
 
-// TODO: move away from frame?
 pub struct FileFuseNode {
-    pub name: String,
+    pub information: FileInformation,
     pub directory_inode_number: u64,
-    pub data_fetcher: Box<dyn Fn() -> Vec<u8>>,
-    pub listed: bool,
-    pub executable: bool,
     inode_number: u64,
 }
 
@@ -109,7 +103,7 @@ impl FileFuseNode {
     }
 
     pub fn get_data(&self) -> Vec<u8> {
-        (self.data_fetcher)()
+        self.information.get_data()
     }
 
     pub fn get_attributes(&self) -> FileAttr {
@@ -117,7 +111,8 @@ impl FileFuseNode {
         create_file_attributes(
             self.get_inode_number(),
             self.get_data().len() as u64,
-            self.executable,
+            self.information.executable,
+            self.information.writable,
         )
     }
 }
@@ -144,7 +139,7 @@ impl<'a> FuseNodeStore<'a> {
                 name: "root".to_string(),
                 file_information_generator: None,
                 children_inode_numbers: Default::default(),
-                children_to_generate: false,
+                children_to_generate_from_file_information: false,
             },
             ROOT_INODE_NUMBER,
         );
@@ -167,7 +162,6 @@ impl<'a> FuseNodeStore<'a> {
         let inode_number = directory.get_inode_number();
         self.directory_nodes
             .insert(inode_number, Box::new(directory));
-        // self.add_child_to_directory(inode_number, parent_directory_inode_number);
 
         let parent_directory = self
             .directory_nodes
@@ -190,24 +184,12 @@ impl<'a> FuseNodeStore<'a> {
             attributes: create_directory_attributes(inode_number),
             name: name.to_string(),
             file_information_generator: None,
-            children_inode_numbers: vec![],
-            children_to_generate: false,
+            children_inode_numbers: Default::default(),
+            children_to_generate_from_file_information: false,
         };
         self.insert_directory(node, parent_directory_inode_number);
         return inode_number;
     }
-
-    // // TODO: how many users of this function are there?
-    // fn add_child_to_directory(&mut self, inode_number: u64, parent_directory_inode_number: u64) {
-    //     let parent_directory = self
-    //         .directory_nodes
-    //         .get_mut(&parent_directory_inode_number)
-    //         .expect(&format!(
-    //             "Parent directory does not exist: {}",
-    //             parent_directory_inode_number
-    //         ));
-    //     parent_directory.children_inode_numbers.push(inode_number);
-    // }
 
     pub fn create_and_insert_file(
         &mut self,
@@ -215,20 +197,9 @@ impl<'a> FuseNodeStore<'a> {
         directory_inode_number: u64,
     ) -> u64 {
         let inode_number = self.create_inode_number();
-        let data_fetcher = match file_information.data_fetcher {
-            Some(x) => x,
-            None => {
-                let data = file_information.data.unwrap().clone();
-                Box::new(move || data.to_owned())
-            }
-        };
-
         let file_node = FileFuseNode {
-            name: file_information.name.to_string(),
+            information: file_information,
             directory_inode_number,
-            data_fetcher,
-            listed: file_information.initially_listed,
-            executable: file_information.executable,
             inode_number,
         };
 
@@ -282,7 +253,7 @@ impl<'a> FuseNodeStore<'a> {
         for child_node in self.get_nodes_in_directory(directory_inode_number) {
             let node_name = match child_node {
                 FuseNode::Directory(x) => x.name.as_str(),
-                FuseNode::File(x) => x.name.as_str(),
+                FuseNode::File(x) => x.information.name.as_str(),
             };
             if node_name == name {
                 return Some(child_node);
@@ -300,7 +271,7 @@ impl<'a> FuseNodeStore<'a> {
             .get(&directory_inode_number)
             .expect(non_existent_director_error);
 
-        if directory.children_to_generate {
+        if directory.children_to_generate_from_file_information {
             for file_information in directory.file_information_generator.as_ref().expect(
                 "Expected children generator because flag indicated that there were children \
                     to generate",
@@ -313,7 +284,7 @@ impl<'a> FuseNodeStore<'a> {
         self.directory_nodes
             .get_mut(&directory_inode_number)
             .expect(non_existent_director_error)
-            .children_to_generate = false;
+            .children_to_generate_from_file_information = false;
 
         let directory = self
             .directory_nodes

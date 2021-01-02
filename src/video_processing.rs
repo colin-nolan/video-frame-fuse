@@ -1,9 +1,10 @@
 use std::string::ToString;
 
 use cached::proc_macro::cached;
+use log::info;
 use opencv::core::{Mat, Vector};
-use opencv::imgcodecs::{imencode, imwrite};
-use opencv::imgproc::cvt_color;
+use opencv::imgcodecs::imencode;
+use opencv::imgproc::{cvt_color, threshold, THRESH_BINARY};
 use opencv::prelude::VideoCaptureTrait;
 use opencv::videoio::{VideoCapture, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES};
 use opencv::{imgproc, Error};
@@ -66,6 +67,45 @@ pub fn get_greyscale_frame_image(
         frame_number, video_location
     ));
     return convert_frame(&greyscale_frame, image_format);
+}
+
+// TODO: cache size
+#[cached]
+pub fn get_black_and_white_frame_image(
+    video_location: String,
+    frame_number: u64,
+    threshold_at: u8,
+    image_format: ImageType,
+) -> Vec<u8> {
+    info!(
+        "Producing black and white {} image of frame {} from video \"{}\", thresholding at {}",
+        image_format.to_string(),
+        frame_number,
+        video_location,
+        threshold_at
+    );
+    let frame = get_frame_from_video(video_location.clone(), frame_number);
+    let greyscale_frame = frame_to_greyscale(&frame).expect(&format!(
+        "Could not create greyscale copy of frame number {} in video: {}",
+        frame_number, video_location
+    ));
+    let black_and_white_frame = frame_to_black_and_white(&greyscale_frame, threshold_at.into())
+        .expect("Could not convert to black and white");
+    return convert_frame(&black_and_white_frame, image_format);
+}
+
+fn frame_to_black_and_white(frame: &Mat, threshold_at: f64) -> Result<Mat, Error> {
+    let mut black_and_white_frame = Mat::default().unwrap();
+    match threshold(
+        frame,
+        &mut black_and_white_frame,
+        threshold_at,
+        255.0,
+        THRESH_BINARY,
+    ) {
+        Ok(_) => Ok(black_and_white_frame),
+        Err(e) => Err(e),
+    }
 }
 
 fn frame_to_greyscale(frame: &Mat) -> Result<Mat, Error> {
