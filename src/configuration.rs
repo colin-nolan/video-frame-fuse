@@ -24,7 +24,7 @@ pub trait Configuration {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct BlackAndWhiteConfiguration {
-    pub(crate) threshold: u8,
+    pub(crate) threshold: Option<u8>,
 }
 
 impl Configuration for BlackAndWhiteConfiguration {
@@ -38,8 +38,6 @@ impl Configuration for BlackAndWhiteConfiguration {
 
 impl Default for BlackAndWhiteConfiguration {
     fn default() -> Self {
-        BlackAndWhiteConfiguration {
-            threshold: u8::max_value() / 2,
-        }
+        BlackAndWhiteConfiguration { threshold: None }
     }
 }

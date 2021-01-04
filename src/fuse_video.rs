@@ -6,7 +6,7 @@ use crate::file_system::nodes::{
 };
 use crate::video_processing::{
     get_black_and_white_frame_image, get_frame_image, get_greyscale_frame_image,
-    get_number_of_frames, open_video, ImageType,
+    get_number_of_frames, ImageType,
 };
 use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, ReplyWrite,
@@ -14,12 +14,8 @@ use fuse::{
 };
 use libc::{ENOENT, EPERM};
 use log::error;
-use opencv::videoio::VideoCapture;
-use std::borrow::Borrow;
 use std::ffi::OsStr;
-use std::ops::Deref;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
 use strum::IntoEnumIterator;
 
@@ -30,14 +26,13 @@ lazy_static! {
 }
 
 pub struct VideoFileSystem<'a> {
-    video: VideoCapture,
     nodes: FuseNodeStore<'a>,
 }
 
 impl<'a> VideoFileSystem<'a> {
     fn create_frame_view(
         directory_name: &str,
-        video_location: &'static str,
+        video_location: &str,
         frame_number: u64,
         directory_attributes_generator: &mut dyn FnMut() -> FileAttr,
         image_data_generator: &'static dyn Fn(
@@ -53,6 +48,8 @@ impl<'a> VideoFileSystem<'a> {
         >,
         default_configuration: ConfigurationHolder,
     ) -> DirectoryFuseNode {
+        let video_location = video_location.to_string();
+
         DirectoryFuseNode::new(
             directory_name,
             directory_attributes_generator(),
@@ -64,12 +61,13 @@ impl<'a> VideoFileSystem<'a> {
                 for image_type in ImageType::iter() {
                     let file_name = format!("frame-{}.{}", frame_number, image_type.to_string());
                     let movable_configuration_holder = configuration_holder.clone();
+                    let movable_video_location = video_location.to_string();
 
                     file_informations.push(FileInformation::new(
                         &file_name,
                         Box::new(move || {
                             image_data_generator(
-                                video_location.to_string(),
+                                movable_video_location.to_string(),
                                 frame_number,
                                 image_type,
                                 movable_configuration_holder.read().unwrap().clone(),
@@ -133,15 +131,13 @@ impl<'a> VideoFileSystem<'a> {
         )
     }
 
-    pub fn new(video_location: &'static str) -> Self {
-        let mut video = open_video(video_location);
-
+    pub fn new(video_location: &str) -> Self {
         let mut node_store = FuseNodeStore::new();
         let root_directory_inode_number = node_store.get_root_directory().get_inode_number();
         let by_frame_directory_inode_number =
             node_store.create_and_insert_directory("by-frame", root_directory_inode_number);
 
-        let number_of_frames = get_number_of_frames(&mut video);
+        let number_of_frames = get_number_of_frames(video_location);
         for frame_number in 1..number_of_frames as u64 {
             let frame_directory_inode_number = node_store.create_and_insert_directory(
                 &format!("frame-{}", frame_number),
@@ -153,7 +149,7 @@ impl<'a> VideoFileSystem<'a> {
                 video_location,
                 frame_number,
                 &mut || create_directory_attributes(node_store.create_inode_number()),
-                &|video_location, frame_number, image_type, configuration_holder| {
+                &|video_location, frame_number, image_type, _| {
                     get_frame_image(video_location, frame_number, image_type)
                 },
                 None,
@@ -167,7 +163,7 @@ impl<'a> VideoFileSystem<'a> {
                 video_location,
                 frame_number,
                 &mut || create_directory_attributes(node_store.create_inode_number()),
-                &|video_location, frame_number, image_type, configuration_holder| {
+                &|video_location, frame_number, image_type, _| {
                     get_greyscale_frame_image(video_location, frame_number, image_type)
                 },
                 None,
@@ -184,8 +180,7 @@ impl<'a> VideoFileSystem<'a> {
                 &|video_location, frame_number, image_type, configuration_holder| {
                     let threshold = match configuration_holder {
                         ConfigurationHolder::BlackAndWhite(x) => x.threshold,
-                        // TODO: default should already exist?
-                        ConfigurationHolder::None => 128,
+                        _ => panic!("Incorrect configuration type"),
                     };
                     get_black_and_white_frame_image(
                         video_location,
@@ -207,10 +202,7 @@ impl<'a> VideoFileSystem<'a> {
         }
 
         // TODO: need video?
-        return VideoFileSystem {
-            video,
-            nodes: node_store,
-        };
+        return VideoFileSystem { nodes: node_store };
 
         // TODO: close video regardless of failure
         // close_video(video);

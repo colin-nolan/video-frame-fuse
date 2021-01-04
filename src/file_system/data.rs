@@ -52,7 +52,7 @@ impl FileInformation {
             Err(e) => return Err(e.to_string()),
         };
         if self.on_data_change.is_some() {
-            let data_change_result = (self.on_data_change.as_ref().unwrap())(&parsed)?;
+            (self.on_data_change.as_ref().unwrap())(&parsed)?;
         }
         self.data = Some(data);
         Ok(())

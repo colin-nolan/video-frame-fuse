@@ -4,7 +4,6 @@ use csv::Writer;
 const DIRECTORY_MANIFEST_HEADER: &[&str; 2] = &["image-type", "location"];
 
 pub struct DirectoryManifest {
-    // writer: Writer<Vec<u8>>,
     records: Vec<[String; 2]>,
 }
 
