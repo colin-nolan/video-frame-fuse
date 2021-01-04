@@ -1,4 +1,4 @@
-use crate::file_system::data::FileInformation;
+use crate::fuse_fs::models::file::FileInformation;
 use fuse::{FileAttr, FileType};
 use std::collections::HashMap;
 use std::marker::PhantomData;
