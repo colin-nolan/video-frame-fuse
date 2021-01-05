@@ -14,7 +14,22 @@ use fuse::FileAttr;
 use std::sync::{Arc, RwLock};
 use strum::IntoEnumIterator;
 
-pub fn create_video_nodes(video_location: &str) -> FuseNodeStore {
+lazy_static! {
+    static ref DEFAULT_VIEW_GENERATORS: Vec<fn(&str, u64, u64) -> DirectoryFuseNode> = vec![
+        create_original_view,
+        create_greyscale_view,
+        create_black_and_white_view,
+    ];
+}
+
+pub fn create_default_video_nodes(video_location: &str) -> FuseNodeStore {
+    create_video_nodes(video_location, DEFAULT_VIEW_GENERATORS.to_vec())
+}
+
+pub fn create_video_nodes(
+    video_location: &str,
+    view_generators: Vec<fn(&str, u64, u64) -> DirectoryFuseNode>,
+) -> FuseNodeStore {
     let mut node_store = FuseNodeStore::new();
     let root_directory_inode_number = node_store.get_root_directory().get_inode_number();
     let by_frame_directory_inode_number =
@@ -27,62 +42,83 @@ pub fn create_video_nodes(video_location: &str) -> FuseNodeStore {
             by_frame_directory_inode_number,
         );
 
-        let originals_directory = create_frame_view(
-            "original",
-            video_location,
-            frame_number,
-            &mut || create_directory_attributes(node_store.create_inode_number()),
-            &|video_location, frame_number, image_type, _| {
-                get_frame_image(video_location, frame_number, image_type)
-            },
-            None,
-            ConfigurationHolder::None,
-        );
-        // TODO: factory that creates and inserts
-        node_store.insert_directory(originals_directory, frame_directory_inode_number);
-
-        let greyscales_directory = create_frame_view(
-            "greyscale",
-            video_location,
-            frame_number,
-            &mut || create_directory_attributes(node_store.create_inode_number()),
-            &|video_location, frame_number, image_type, _| {
-                get_greyscale_frame_image(video_location, frame_number, image_type)
-            },
-            None,
-            ConfigurationHolder::None,
-        );
-        // TODO: factory that creates and inserts
-        node_store.insert_directory(greyscales_directory, frame_directory_inode_number);
-
-        let black_and_white_directory = create_frame_view(
-            "black-and-white",
-            video_location,
-            frame_number,
-            &mut || create_directory_attributes(node_store.create_inode_number()),
-            &|video_location, frame_number, image_type, configuration_holder| {
-                let threshold = match configuration_holder {
-                    ConfigurationHolder::BlackAndWhite(x) => x.threshold,
-                    _ => panic!("Incorrect configuration type"),
-                };
-                get_black_and_white_frame_image(video_location, frame_number, threshold, image_type)
-            },
-            Some(Box::new(
-                &|data| match BlackAndWhiteConfiguration::from_yaml(data) {
-                    Ok(x) => Ok(ConfigurationHolder::BlackAndWhite(x)),
-                    Err(e) => Err(e),
-                },
-            )),
-            ConfigurationHolder::BlackAndWhite(BlackAndWhiteConfiguration::default()),
-        );
-        // TODO: factory that creates and inserts
-        node_store.insert_directory(black_and_white_directory, frame_directory_inode_number);
+        for view_generator in &view_generators {
+            let view_directory = view_generator(
+                video_location,
+                frame_number,
+                node_store.create_inode_number(),
+            );
+            node_store.insert_directory(view_directory, frame_directory_inode_number);
+        }
     }
 
     return node_store;
 }
 
-fn create_frame_view(
+pub fn create_original_view(
+    video_location: &str,
+    frame_number: u64,
+    inode_number: u64,
+) -> DirectoryFuseNode {
+    create_frame_view(
+        "original",
+        video_location,
+        frame_number,
+        &mut || create_directory_attributes(inode_number),
+        &|video_location, frame_number, image_type, _| {
+            get_frame_image(video_location, frame_number, image_type)
+        },
+        None,
+        ConfigurationHolder::None,
+    )
+}
+
+pub fn create_greyscale_view(
+    video_location: &str,
+    frame_number: u64,
+    inode_number: u64,
+) -> DirectoryFuseNode {
+    create_frame_view(
+        "greyscale",
+        video_location,
+        frame_number,
+        &mut || create_directory_attributes(inode_number),
+        &|video_location, frame_number, image_type, _| {
+            get_greyscale_frame_image(video_location, frame_number, image_type)
+        },
+        None,
+        ConfigurationHolder::None,
+    )
+}
+
+pub fn create_black_and_white_view(
+    video_location: &str,
+    frame_number: u64,
+    inode_number: u64,
+) -> DirectoryFuseNode {
+    create_frame_view(
+        "black-and-white",
+        video_location,
+        frame_number,
+        &mut || create_directory_attributes(inode_number),
+        &|video_location, frame_number, image_type, configuration_holder| {
+            let threshold = match configuration_holder {
+                ConfigurationHolder::BlackAndWhite(x) => x.threshold,
+                _ => panic!("Incorrect configuration type"),
+            };
+            get_black_and_white_frame_image(video_location, frame_number, threshold, image_type)
+        },
+        Some(Box::new(
+            &|data| match BlackAndWhiteConfiguration::from_yaml(data) {
+                Ok(x) => Ok(ConfigurationHolder::BlackAndWhite(x)),
+                Err(e) => Err(e),
+            },
+        )),
+        ConfigurationHolder::BlackAndWhite(BlackAndWhiteConfiguration::default()),
+    )
+}
+
+pub fn create_frame_view(
     directory_name: &str,
     video_location: &str,
     frame_number: u64,
