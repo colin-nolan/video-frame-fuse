@@ -7,6 +7,7 @@ use users::{get_current_gid, get_current_uid};
 
 pub const ROOT_INODE_NUMBER: u64 = 1;
 
+// TODO: sort
 pub fn create_directory_attributes(inode_number: u64) -> FileAttr {
     return FileAttr {
         ino: inode_number as u64,
@@ -107,7 +108,6 @@ impl FileFuseNode {
     }
 
     pub fn get_attributes(&self) -> FileAttr {
-        // TODO: caching?
         create_file_attributes(
             self.get_inode_number(),
             self.get_data().len() as u64,
@@ -120,7 +120,6 @@ impl FileFuseNode {
 pub struct FuseNodeStore<'a> {
     file_nodes: HashMap<u64, Box<FileFuseNode>>,
     directory_nodes: HashMap<u64, Box<DirectoryFuseNode>>,
-    // XXX: it would be more efficient to store the references but hit lifetime issues...
     current_inode_number: u64,
     phantom: PhantomData<&'a ()>,
 }
@@ -153,7 +152,6 @@ impl<'a> FuseNodeStore<'a> {
         ))
     }
 
-    // TODO: required?
     pub fn insert_directory(
         &mut self,
         directory: DirectoryFuseNode,
@@ -173,7 +171,6 @@ impl<'a> FuseNodeStore<'a> {
         parent_directory.children_inode_numbers.push(inode_number);
     }
 
-    // TODO: split into factory?
     pub fn create_and_insert_directory(
         &mut self,
         name: &str,
@@ -217,7 +214,6 @@ impl<'a> FuseNodeStore<'a> {
 
     pub fn get_file_node(&self, inode_number: u64) -> Option<&FileFuseNode> {
         match self.file_nodes.get(&inode_number) {
-            // Some(boxed_node) => Some(&boxed_node),
             Some(boxed_node) => Some(boxed_node.as_ref()),
             None => None,
         }
@@ -225,7 +221,6 @@ impl<'a> FuseNodeStore<'a> {
 
     pub fn get_file_node_mut(&mut self, inode_number: u64) -> Option<&mut FileFuseNode> {
         match self.file_nodes.get_mut(&inode_number) {
-            // Some(boxed_node) => Some(&boxed_node),
             Some(boxed_node) => Some(boxed_node.as_mut()),
             None => None,
         }

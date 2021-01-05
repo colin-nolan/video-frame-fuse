@@ -108,12 +108,10 @@ pub fn create_black_and_white_view(
             };
             get_black_and_white_frame_image(video_location, frame_number, threshold, image_type)
         },
-        Some(Box::new(
-            &|data| match BlackAndWhiteConfiguration::from_yaml(data) {
-                Ok(x) => Ok(ConfigurationHolder::BlackAndWhite(x)),
-                Err(e) => Err(e),
-            },
-        )),
+        Some(&|data| match BlackAndWhiteConfiguration::from_yaml(data) {
+            Ok(x) => Ok(ConfigurationHolder::BlackAndWhite(x)),
+            Err(e) => Err(e),
+        }),
         ConfigurationHolder::BlackAndWhite(BlackAndWhiteConfiguration::default()),
     )
 }
@@ -124,8 +122,7 @@ pub fn create_frame_view(
     frame_number: u64,
     directory_attributes_generator: &mut dyn FnMut() -> FileAttr,
     image_data_generator: &'static dyn Fn(String, u64, ImageType, ConfigurationHolder) -> Vec<u8>,
-    // Does this actually need to be boxed?
-    configuration_parser: Option<Box<&'static dyn Fn(&str) -> Result<ConfigurationHolder, String>>>,
+    configuration_parser: Option<&'static dyn Fn(&str) -> Result<ConfigurationHolder, String>>,
     default_configuration: ConfigurationHolder,
 ) -> DirectoryFuseNode {
     let video_location = video_location.to_string();
