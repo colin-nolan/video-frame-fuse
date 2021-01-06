@@ -11,6 +11,7 @@ mod video_processing;
 
 use crate::cli::{parse_configuration, Configuration};
 use crate::fuse_fs::create_video_filesystem;
+use crate::fuse_fs::fs::VideoFileSystem;
 use log::{debug, error};
 use std::ffi::OsStr;
 use std::path::Path;
@@ -22,12 +23,20 @@ enum StatusCode {
 }
 
 fn main() {
+    let configuration = initialise();
+    let filesystem = create_video_filesystem(&configuration.video_location);
+    mount_filesystem(filesystem, &configuration);
+}
+
+pub fn initialise() -> Configuration {
     env_logger::init();
     let configuration = parse_configuration();
     debug!("{:?}", configuration);
     validate_configuration(&configuration);
+    return configuration;
+}
 
-    let filesystem = create_video_filesystem(&configuration.video_location);
+pub fn mount_filesystem(filesystem: VideoFileSystem, configuration: &Configuration) {
     let options = ["-o", "fsname=video-fuse-system"]
         .iter()
         .map(|o| o.as_ref())

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ConfigurationHolder {
     None,
     BlackAndWhite(BlackAndWhiteConfiguration),
@@ -22,7 +22,7 @@ pub trait Configuration {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct BlackAndWhiteConfiguration {
     pub(crate) threshold: Option<u8>,
 }
@@ -39,5 +39,21 @@ impl Configuration for BlackAndWhiteConfiguration {
 impl Default for BlackAndWhiteConfiguration {
     fn default() -> Self {
         BlackAndWhiteConfiguration { threshold: None }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case(None; "when threshold is none")]
+    #[test_case(Some(0); "when threshold is 0")]
+    #[test_case(Some(255); "when threshold is 255")]
+    fn black_and_white_configuration_serialisation(threshold: Option<u8>) {
+        let configuration = BlackAndWhiteConfiguration { threshold };
+        let yaml = configuration.to_yaml().unwrap();
+        let parsed_configuration = BlackAndWhiteConfiguration::from_yaml(&yaml).unwrap();
+        assert_eq!(parsed_configuration, configuration);
     }
 }

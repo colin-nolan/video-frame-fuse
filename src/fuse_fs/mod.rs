@@ -1,7 +1,7 @@
 use crate::fuse_fs::fs::VideoFileSystem;
 use crate::fuse_fs::nodes::create_default_video_nodes;
 
-mod fs;
+pub(crate) mod fs;
 mod models;
 mod nodes;
 

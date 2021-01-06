@@ -11,6 +11,7 @@ use crate::video_processing::{
     get_number_of_frames, ImageType,
 };
 use fuse::FileAttr;
+use log::{debug, info};
 use std::sync::{Arc, RwLock};
 use strum::IntoEnumIterator;
 
@@ -117,7 +118,7 @@ pub fn create_black_and_white_view(
 }
 
 pub fn create_frame_view(
-    directory_name: &str,
+    view_name: &str,
     video_location: &str,
     frame_number: u64,
     directory_attributes_generator: &mut dyn FnMut() -> FileAttr,
@@ -126,9 +127,10 @@ pub fn create_frame_view(
     default_configuration: ConfigurationHolder,
 ) -> DirectoryFuseNode {
     let video_location = video_location.to_string();
+    let view_name = view_name.to_string();
 
     DirectoryFuseNode::new(
-        directory_name,
+        &(view_name.clone()),
         directory_attributes_generator(),
         Box::new(move |_| {
             let mut directory_manifest = DirectoryManifest::new();
@@ -177,16 +179,22 @@ pub fn create_frame_view(
             // Required to use within inner closure
             let configuration_parser = configuration_parser.clone();
             let movable_configuration_holder = configuration_holder.clone();
+            let movable_view_name = view_name.to_string();
             // TODO: correctly handle unwrap
             let config_change_handler: Option<Box<dyn Fn(&str) -> Result<(), String>>> =
                 Some(Box::new(move |data| {
+                    debug!("Received updated configuration: {}", data);
+
                     // TODO: handle invalid config, don't just unwrap!
                     let configuration = configuration_parser.as_ref().unwrap()(data)?;
 
                     // Update configuration shared with data generators
                     let mut configuration_holder = movable_configuration_holder.write().unwrap();
-                    eprintln!("Updating shared configuration...");
-                    *configuration_holder = configuration;
+                    *configuration_holder = configuration.clone();
+                    info!(
+                        "Updated {} configuration for frame {}: {:?}",
+                        movable_view_name, frame_number, configuration
+                    );
                     Ok(())
                 }));
 

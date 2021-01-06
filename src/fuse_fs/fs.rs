@@ -3,8 +3,9 @@ use fuse::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, ReplyWrite,
     Request,
 };
-use libc::{ENOENT, EPERM};
-use log::error;
+use libc::{EIO, ENOENT, EPERM};
+use log::{debug, error};
+use std::cmp::max;
 use std::ffi::OsStr;
 use std::time::{Duration, SystemTime};
 
@@ -90,13 +91,13 @@ impl Filesystem for VideoFileSystem<'_> {
         _flags: Option<u32>,
         reply: ReplyAttr,
     ) {
-        // TODO: consider other attributes
-        let node = self
-            .nodes
-            .get_file_node(inode_number)
-            // TODO: change to reply.error
-            .expect(&format!("Could not fetch node: {}", inode_number));
-        reply.attr(&TTL, &node.get_attributes());
+        match self.nodes.get_file_node(inode_number) {
+            None => {
+                error!("Node not found (setattr): {}", inode_number);
+                reply.error(EIO);
+            }
+            Some(node) => reply.attr(&TTL, &node.get_attributes()),
+        }
     }
 
     fn read(
@@ -111,6 +112,7 @@ impl Filesystem for VideoFileSystem<'_> {
         let node = match self.nodes.get_file_node_mut(ino) {
             Some(x) => x,
             None => {
+                error!("Node not found (read): {}", ino);
                 reply.error(ENOENT);
                 return;
             }
@@ -127,18 +129,38 @@ impl Filesystem for VideoFileSystem<'_> {
         _req: &Request<'_>,
         inode_number: u64,
         _fh: u64,
-        _offset: i64,
+        offset: i64,
         data: &[u8],
         _flags: u32,
         reply: ReplyWrite,
     ) {
-        let node = self
-            .nodes
-            .get_file_node_mut(inode_number)
-            // TODO: change to reply.error
-            .expect(&format!("Could not fetch node: {}", inode_number));
-        // FIXME: consider offset...
-        let write_result = node.information.set_data(data.to_vec());
+        debug!(
+            "Writing data of length {} to {} with offset {}",
+            data.len(),
+            offset,
+            inode_number,
+        );
+        let node_result = self.nodes.get_file_node_mut(inode_number);
+        if node_result.is_none() {
+            error!("Node not found (write) {}", inode_number);
+            reply.error(EIO);
+            return;
+        }
+        let node = node_result.unwrap();
+
+        let mut data_as_vec;
+        if offset == 0 {
+            data_as_vec = data.to_vec();
+        } else {
+            data_as_vec = node.information.get_data();
+            let end_position: usize = offset as usize + data.len();
+            // XXX: there is likely a more efficient way to support an append operation (common)
+            data_as_vec.resize(max(data_as_vec.len(), end_position), 0);
+            data_as_vec.splice(offset as usize..end_position, data.to_vec());
+        }
+
+        // FIXME: setting the data calls the callback
+        let write_result = node.information.set_data(data_as_vec);
         if write_result.is_err() {
             error!(
                 "Error writing file \"{}\": {}",
