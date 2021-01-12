@@ -244,7 +244,7 @@ impl<'a> FuseNodeStore<'a> {
     }
 
     pub fn lookup_node(&mut self, name: &str, directory_inode_number: u64) -> Option<FuseNode> {
-        // TODO: specialised data structure to
+        // TODO: specialised data structure to optimise
         for child_node in self.get_nodes_in_directory(directory_inode_number) {
             let node_name = match child_node {
                 FuseNode::Directory(x) => x.name.as_str(),
@@ -301,4 +301,160 @@ impl<'a> FuseNodeStore<'a> {
         self.current_inode_number += 1;
         return self.current_inode_number;
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    lazy_static! {
+        static ref FILE_ATTR_1: FileAttr = FileAttr {
+            ino: 42,
+            size: 0,
+            blocks: 0,
+            atime: SystemTime::UNIX_EPOCH,
+            mtime: SystemTime::UNIX_EPOCH,
+            ctime: SystemTime::UNIX_EPOCH,
+            crtime: SystemTime::UNIX_EPOCH,
+            kind: FileType::Directory,
+            perm: 0,
+            nlink: 0,
+            uid: 0,
+            gid: 0,
+            rdev: 0,
+            flags: 0
+        };
+    }
+
+    #[test]
+    fn directory_fuse_node() {
+        let directory_fuse_node =
+            DirectoryFuseNode::new("test", FILE_ATTR_1.clone(), Box::new(|_| vec![]));
+        assert_eq!(directory_fuse_node.get_inode_number(), FILE_ATTR_1.ino)
+    }
+
+    #[test]
+    fn file_fuse_node() {
+        let inode_number = 43;
+        let data = "testing".as_bytes().to_vec();
+
+        let file_fuse_node = FileFuseNode {
+            information: FileInformation::new_with_data(
+                "test",
+                data.clone(),
+                false,
+                false,
+                false,
+                None,
+            ),
+            directory_inode_number: 0,
+            inode_number: inode_number,
+        };
+        assert_eq!(file_fuse_node.get_inode_number(), inode_number);
+        assert_eq!(file_fuse_node.get_data(), data);
+        let attributes = file_fuse_node.get_attributes();
+        assert_eq!(attributes.ino, inode_number);
+        assert_eq!(attributes.kind, FileType::RegularFile);
+        assert_eq!(attributes.size, data.len() as u64);
+    }
+
+    #[test]
+    fn node_store_get_root_directory() {
+        let node_store = FuseNodeStore::new();
+        let root_directory = node_store.get_root_directory();
+
+        node_store
+            .directory_nodes
+            .get(&root_directory.get_inode_number())
+            .unwrap();
+        assert_eq!(root_directory.get_inode_number(), ROOT_INODE_NUMBER);
+        assert_eq!(
+            node_store
+                .get_directory_node(root_directory.get_inode_number())
+                .unwrap()
+                .get_inode_number(),
+            root_directory.get_inode_number()
+        );
+    }
+
+    #[test]
+    fn node_store_insert_directory() {
+        let mut node_store = FuseNodeStore::new();
+        let name = "test123";
+        let directory = DirectoryFuseNode::new(&name, FILE_ATTR_1.clone(), Box::new(|_| vec![]));
+        let inode_number = directory.get_inode_number();
+
+        node_store.insert_directory(
+            directory,
+            node_store.get_root_directory().get_inode_number(),
+        );
+
+        let retrieved_directory = node_store.get_directory_node(inode_number).unwrap();
+        assert_eq!(&retrieved_directory.name, name);
+        assert_eq!(retrieved_directory.get_inode_number(), inode_number);
+    }
+
+    #[test]
+    fn node_store_create_and_insert_directory() {
+        let mut node_store = FuseNodeStore::new();
+        let name = "test123";
+        let inode_number = node_store
+            .create_and_insert_directory(&name, node_store.get_root_directory().get_inode_number());
+
+        let retrieved_directory = node_store.get_directory_node(inode_number).unwrap();
+        assert_eq!(retrieved_directory.name, name);
+    }
+
+    #[test]
+    fn node_store_create_and_insert_file() {
+        let mut node_store = FuseNodeStore::new();
+        let data_fetcher = Box::new(|| "data".as_bytes().to_vec());
+        let name = "test123";
+        let file_information = FileInformation::new(&name, data_fetcher.clone(), false, false);
+        let inode_number = node_store.create_and_insert_file(
+            file_information,
+            node_store.get_root_directory().get_inode_number(),
+        );
+
+        let retrieved_file = node_store.get_file_node(inode_number).unwrap();
+        assert_eq!(retrieved_file.get_inode_number(), inode_number);
+        assert_eq!(retrieved_file.information.name, name);
+        assert_eq!(retrieved_file.get_data(), data_fetcher());
+        assert_eq!(
+            retrieved_file.get_attributes().size as usize,
+            data_fetcher().len()
+        );
+    }
+
+    #[test]
+    fn node_store_get_file_node_not_exist() {
+        let node_store = FuseNodeStore::new();
+        assert!(node_store.get_node(12345).is_none());
+    }
+
+    #[test]
+    fn node_store_get_directory_node_not_exist() {
+        let node_store = FuseNodeStore::new();
+        assert!(node_store.get_directory_node(12345).is_none());
+    }
+
+    #[test]
+    fn node_store_get_node_not_exist() {
+        let node_store = FuseNodeStore::new();
+        assert!(node_store.get_node(12345).is_none());
+    }
+
+    #[test]
+    fn node_store_get_node_directory() {
+        let mut node_store = FuseNodeStore::new();
+        let inode_number = node_store
+            .create_and_insert_directory("", node_store.get_root_directory().get_inode_number());
+        // TODO
+        assert_eq!(
+            node_store.get_node(inode_number).unwrap(),
+            FuseNode::Directory
+        )
+    }
+
+    // TODO: continue testing
 }
