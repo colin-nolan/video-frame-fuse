@@ -265,7 +265,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 [[package]]
 name = "fuse"
 version = "0.4.0-dev"
-source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
 dependencies = [
  "fuse-abi",
  "fuse-sys",
@@ -277,12 +277,12 @@ dependencies = [
 [[package]]
 name = "fuse-abi"
 version = "0.4.0-dev"
-source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
 
 [[package]]
 name = "fuse-sys"
 version = "0.4.0-dev"
-source = "git+https://github.com/zargony/fuse-rs?rev=39fde4a5c47ce370d228ac190f950bd835db7f47#39fde4a5c47ce370d228ac190f950bd835db7f47"
+source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
 dependencies = [
  "pkg-config",
 ]

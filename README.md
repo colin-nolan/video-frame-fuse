@@ -1,5 +1,17 @@
 # Video Frame FUSE
 
+Will create `fuse-mount-location` if it does not exist.
+
+
+## Docker
+TODO...
+In the root directory of the project:
+```
+DOCKER_BUILDKIT=1 docker build -t colin-nolan/video-frame-fuse .
+```
+```
+docker run --device /dev/fuse --cap-add SYS_ADMIN --rm colin-nolan/video-frame-fuse <video-location> <fuse-mount-location>
+``` 
 
 
 ## Dependencies

@@ -5,7 +5,7 @@ use fuse::{
 };
 use libc::{EIO, ENOENT, EPERM};
 use log::{debug, error};
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::ffi::OsStr;
 use std::time::{Duration, SystemTime};
 
@@ -119,7 +119,8 @@ impl Filesystem for VideoFileSystem<'_> {
         };
 
         let data = node.get_data();
-        reply.data(&data[offset as usize..offset as usize + size as usize]);
+        let end = min(offset as usize + size as usize, data.len());
+        reply.data(&data[offset as usize..end]);
 
         node.information.listed = true;
     }

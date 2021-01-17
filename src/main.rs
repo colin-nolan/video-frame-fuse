@@ -14,6 +14,8 @@ use crate::fuse_fs::create_video_filesystem;
 use crate::fuse_fs::fs::VideoFileSystem;
 use log::{debug, error};
 use std::ffi::OsStr;
+use std::fmt::format;
+use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::exit;
 
@@ -41,6 +43,11 @@ pub fn mount_filesystem(filesystem: VideoFileSystem, configuration: &Configurati
         .iter()
         .map(|o| o.as_ref())
         .collect::<Vec<&OsStr>>();
+
+    create_dir_all(&configuration.fuse_mount_location).expect(&format!(
+        "Could not create fuse mount location: {}",
+        &configuration.fuse_mount_location
+    ));
 
     match fuse::mount(filesystem, &configuration.fuse_mount_location, &options) {
         Ok(_) => {}

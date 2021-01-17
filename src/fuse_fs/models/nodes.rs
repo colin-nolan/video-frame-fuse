@@ -450,10 +450,37 @@ mod tests {
         let inode_number = node_store
             .create_and_insert_directory("", node_store.get_root_directory().get_inode_number());
         // TODO
-        assert_eq!(
-            node_store.get_node(inode_number).unwrap(),
-            FuseNode::Directory
-        )
+        match node_store.get_node(inode_number).unwrap() {
+            FuseNode::Directory(x) => {
+                assert_eq!(x.get_inode_number(), inode_number)
+            }
+            FuseNode::File(_) => {
+                panic!("Expected directory")
+            }
+        }
+    }
+
+    #[test]
+    fn node_store_get_node_file() {
+        let mut node_store = FuseNodeStore::new();
+        let inode_number = node_store.create_and_insert_file(FileInformation {
+            name: "".to_string(),
+            data_fetcher: None,
+            data: None,
+            listed: false,
+            executable: false,
+            writable: false,
+            on_data_change: None,
+        });
+        // TODO
+        match node_store.get_node(inode_number).unwrap() {
+            FuseNode::Directory(_) => {
+                panic!("Expected file")
+            }
+            FuseNode::File(_) => {
+                assert_eq!(x.get_inode_number(), inode_number)
+            }
+        }
     }
 
     // TODO: continue testing
