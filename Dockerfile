@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as builder
+FROM ubuntu:20.04 as setup
 
 SHELL ["/bin/bash", "-c"]
 
@@ -25,10 +25,18 @@ ADD src/ ./src
 ADD resources/ ./resources
 ADD Cargo.* ./
 
+
+FROM setup as builder
+
 RUN cargo build --jobs $(nproc) --release
 
 
-FROM ubuntu:20.04
+FROM setup as tester
+
+RUN cargo test --jobs $(nproc)
+
+
+FROM ubuntu:20.04 as production
 
 ENV DEBIAN_FRONTEND=noninteractive
 

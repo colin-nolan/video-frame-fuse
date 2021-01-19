@@ -7,10 +7,11 @@ Will create `fuse-mount-location` if it does not exist.
 TODO...
 In the root directory of the project:
 ```
-DOCKER_BUILDKIT=1 docker build -t colin-nolan/video-frame-fuse .
+DOCKER_BUILDKIT=1 docker build --target production -t colin-nolan/video-frame-fuse .
 ```
+
 ```
-docker run --device /dev/fuse --cap-add SYS_ADMIN --rm colin-nolan/video-frame-fuse <video-location> <fuse-mount-location>
+docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colin-nolan/video-frame-fuse <video-location> <fuse-mount-location>
 ``` 
 
 
@@ -37,3 +38,7 @@ brew cask install osxfuse
 ## Development
 To build, FUSE libraries and headers are required. The package is usually called `libfuse-dev` or `fuse-devel`. 
 Also `pkg-config` is required for locating libraries and headers.
+
+```
+DOCKER_BUILDKIT=1 docker build --target tester .
+```

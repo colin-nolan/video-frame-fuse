@@ -29,7 +29,9 @@ pub fn get_number_of_frames(video_location: &str) -> u64 {
     return number_of_frames;
 }
 
-// TODO: configurable cache size (hint use `name=`)
+// Note: the "cached" library does not offer a cache store that is able to be resized dynamically.
+//       If a cached store becomes available, `name=` can be set or the name of the function in caps
+//       can be used to refer to the cache.
 #[cached(size = 25)]
 pub(crate) fn get_frame_image(
     video_location: String,

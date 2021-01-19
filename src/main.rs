@@ -14,7 +14,6 @@ use crate::fuse_fs::create_video_filesystem;
 use crate::fuse_fs::fs::VideoFileSystem;
 use log::{debug, error};
 use std::ffi::OsStr;
-use std::fmt::format;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::exit;
