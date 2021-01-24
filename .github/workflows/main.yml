@@ -9,27 +9,84 @@ on:
         - opened
 
 jobs:
-  build:
+  whitebox-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
         with:
           ref: ${{ github.head_ref }}
 
-      - name: Build
+      - name: Build format checker
         uses: docker/build-push-action@v2.2.2
         with:
+          tags: colin-nolan/video-frame-fuse:formatter
           context: .
-          target: builder
+          target: formatter
 
-      - name: Unit test
+      - name: Check format
+        run: docker run --rm -v "${PWD}:/checkout:ro" colin-nolan/video-frame-fuse:formatter /checkout/scripts/test/run-style-check.sh
+
+      - name: Build tester
         uses: docker/build-push-action@v2.2.2
         with:
+          tags: colin-nolan/video-frame-fuse:tester
           context: .
           target: tester
 
-      - name: Package
+      - name: Run unit tests
+        run: docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-unit-tests.sh
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Build builder
         uses: docker/build-push-action@v2.2.2
         with:
+          tags: colin-nolan/video-frame-fuse:builder
           context: .
-          target: packager 
+          target: builder
+
+      - name: Build binary
+        run: docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:builder /checkout/scripts/build/run-release-build.sh
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: video-frame-fuse
+          path: target/release/video-frame-fuse
+
+      # TODO: save docker image...
+
+  blackbox-test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Build tester
+        uses: docker/build-push-action@v2.2.2
+        with:
+          tags: colin-nolan/video-frame-fuse:tester
+          context: .
+          target: tester
+
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: video-frame-fuse
+          path: target/release/
+
+      - name: Run tests
+        run: |
+          chmod +x ./target/release/video-frame-fuse
+          docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/target/release/video-frame-fuse --help
+          docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh

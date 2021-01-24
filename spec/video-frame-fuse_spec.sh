@@ -5,14 +5,19 @@ Describe "Example specfile"
   BeforeEach "setup"
   AfterEach "cleanup"
 
-  Describe "hello()"
-    tool() {
-      "${TOOL:=video-frame-fuse}" "$@"
-    }
-
-    It "puts greeting, but not implemented"
-      When call tool --version
-      The output should eq "hello world"
-    End
+  tool() {
+    "${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}" "$@"
+  }
+  
+  It "has a --version flag"
+    When call tool --version
+    The status should equal 0
+    The output should not equal ""
+  End
+  
+  It "has a --help flag"
+    When call tool --help
+    The status should equal 0
+    The output should not equal ""
   End
 End

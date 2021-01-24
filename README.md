@@ -42,3 +42,13 @@ Also `pkg-config` is required for locating libraries and headers.
 ```
 DOCKER_BUILDKIT=1 docker build --target tester .
 ```
+
+```
+DOCKER_BUILDKIT=1 docker build --target formatter --tag colin-nolan/video-frame-fuse:formatter .
+docker run -v "${PWD}:/repository:ro" --rm colin-nolan/video-frame-fuse:formatter /repository
+```
+
+```
+DOCKER_BUILDKIT=1 docker build --target tester --tag colin-nolan/video-frame-fuse:tester .
+docker run -u $(id -u):$(id -g) -v "${PWD}:/repository" --rm colin-nolan/video-frame-fuse:tester /repository/scripts/test/run-unit-tests.sh
+```

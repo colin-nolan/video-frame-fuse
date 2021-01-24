@@ -1,3 +1,6 @@
+##################################################
+# Builder
+##################################################
 FROM ubuntu:20.04 as builder
 
 SHELL ["/bin/bash", "-c"]
@@ -7,33 +10,54 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Note: not optimising layers in builder
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl
-RUN bash <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y
-ENV PATH "/root/.cargo/bin:${PATH}"
-
-RUN apt-get install -y --no-install-recommends \
-        llvm \
-        libfuse-dev \
-        libclang-dev \
-        libopencv-dev \
         build-essential \
-        clang
+        ca-certificates \
+        clang \
+        curl \
+        git \
+        libclang-dev \
+        libfuse-dev \
+        libopencv-dev \
+        llvm
 
-WORKDIR /usr/local/src/video-frame-fuse
-ADD src/ ./src
-ADD resources/ ./resources
-ADD Cargo.* ./
+ENV RUSTUP_HOME=/opt/rustup
+ENV PATH="${PATH}:/opt/cargo/bin"
 
-RUN cargo build --jobs $(nproc) --release
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain stable --profile default --no-modify-path -y
+# Allow unknown users to cargo
+RUN mkdir /.cargo && chmod 777 /.cargo
 
 
+##################################################
+# Formatter
+##################################################
+FROM builder as formatter
+
+
+##################################################
+# Tester
+##################################################
 FROM builder as tester
 
-RUN cargo test --jobs $(nproc)
+RUN curl -fsSL https://git.io/shellspec | sh -s -- --prefix /usr/local --yes
 
 
-FROM ubuntu:20.04 as packager
+##################################################
+# Package for production
+##################################################
+FROM builder as packager
+
+WORKDIR /usr/local/src/video-frame-fuse
+COPY src/ ./src
+COPY resources/ ./resources
+COPY Cargo.* ./
+COPY scripts/build/run-release-build.sh .
+
+RUN ./run-release-build.sh .
+
+
+FROM ubuntu:20.04 as production
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -42,6 +66,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fuse \
    && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/local/src/video-frame-fuse/target/release/video-frame-fuse /usr/local/bin/
+COPY --from=packager /usr/local/src/video-frame-fuse/target/release/video-frame-fuse /usr/local/bin/
 
 ENTRYPOINT ["video-frame-fuse"]
