@@ -7,7 +7,7 @@ Will create `fuse-mount-location` if it does not exist.
 TODO...
 In the root directory of the project:
 ```
-DOCKER_BUILDKIT=1 docker build --target production -t colin-nolan/video-frame-fuse .
+DOCKER_BUILDKIT=1 docker build --target packager -t colin-nolan/video-frame-fuse .
 ```
 
 ```
