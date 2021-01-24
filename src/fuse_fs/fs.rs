@@ -160,7 +160,7 @@ impl Filesystem for VideoFileSystem<'_> {
             data_as_vec.splice(offset as usize..end_position, data.to_vec());
         }
 
-        // FIXME: setting the data calls the callback
+        // FIXME: setting the data calls the callback, even though the full data may not be complete
         let write_result = node.information.set_data(data_as_vec);
         if write_result.is_err() {
             error!(

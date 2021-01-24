@@ -28,7 +28,12 @@ ADD Cargo.* ./
 RUN cargo build --jobs $(nproc) --release
 
 
-FROM ubuntu:20.04
+FROM builder as tester
+
+RUN cargo test --jobs $(nproc)
+
+
+FROM ubuntu:20.04 as packager
 
 ENV DEBIAN_FRONTEND=noninteractive
 
