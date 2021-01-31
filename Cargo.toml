@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 opencv = "0.46.3"
-fuse = { git = "https://github.com/delehef/fuse-rs.git", rev="f9e41e8078bde7a9f8e16eb2413bbabb562fc706" }
+fuse = { git = "https://github.com/colin-nolan/fuse-rs.git", rev="05c2acb4827a8266f8e8c55a13a4f75b7149e164" }
 libc = "0.2"
 users = "0.11"
 lazy_static = "1.4.0"
@@ -20,6 +20,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 clap = "2.33.3"
 indoc = "1.0.3"
+daemonize = "0.4.1"
 
 [dev-dependencies]
 test-case = "1.0.0"

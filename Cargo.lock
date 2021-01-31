@@ -62,6 +62,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "boxfnonce"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5988cb1d626264ac94100be357308f29ff7cbdd3b36bda27f450a4ee3f713426"
+
+[[package]]
 name = "bstr"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -185,6 +191,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "daemonize"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70c24513e34f53b640819f0ac9f705b673fcf4006d7aab8778bee72ebfc89815"
+dependencies = [
+ "boxfnonce",
+ "libc",
+]
+
+[[package]]
 name = "darling"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -265,7 +281,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 [[package]]
 name = "fuse"
 version = "0.4.0-dev"
-source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
+source = "git+https://github.com/colin-nolan/fuse-rs.git?rev=05c2acb4827a8266f8e8c55a13a4f75b7149e164#05c2acb4827a8266f8e8c55a13a4f75b7149e164"
 dependencies = [
  "fuse-abi",
  "fuse-sys",
@@ -277,12 +293,12 @@ dependencies = [
 [[package]]
 name = "fuse-abi"
 version = "0.4.0-dev"
-source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
+source = "git+https://github.com/colin-nolan/fuse-rs.git?rev=05c2acb4827a8266f8e8c55a13a4f75b7149e164#05c2acb4827a8266f8e8c55a13a4f75b7149e164"
 
 [[package]]
 name = "fuse-sys"
 version = "0.4.0-dev"
-source = "git+https://github.com/delehef/fuse-rs?rev=f9e41e8078bde7a9f8e16eb2413bbabb562fc706#f9e41e8078bde7a9f8e16eb2413bbabb562fc706"
+source = "git+https://github.com/colin-nolan/fuse-rs.git?rev=05c2acb4827a8266f8e8c55a13a4f75b7149e164#05c2acb4827a8266f8e8c55a13a4f75b7149e164"
 dependencies = [
  "pkg-config",
 ]
@@ -846,6 +862,7 @@ dependencies = [
  "cached",
  "clap",
  "csv",
+ "daemonize",
  "env_logger",
  "fuse",
  "indoc",

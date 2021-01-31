@@ -7,6 +7,6 @@ repository_root_directory="$(cd "${script_directory}" && git rev-parse --show-to
 
 pushd "${repository_root_directory}" > /dev/null
 
-shellspec -j "$(nproc)"
+shellspec -j "$(nproc)" --format tap "$@"
 
 popd > /dev/null
