@@ -59,11 +59,13 @@ pub fn mount_filesystem(filesystem: VideoFileSystem, configuration: &Configurati
     ));
 
     match fuse::mount(filesystem, &configuration.fuse_mount_location, &options) {
-        Ok(_) => {}
+        Ok(_) => {
+            info!("Mount exited cleanly");
+        }
         Err(e) => {
             let error_string = e.to_string();
             error!(
-                "Could not mount filesystem: {} (additional error messages may be printed above)",
+                "Error during filesystem mount: {} (additional error messages may be printed above)",
                 error_string
             );
         }

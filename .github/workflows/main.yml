@@ -94,8 +94,6 @@ jobs:
           name: video-frame-fuse
           path: target/release/video-frame-fuse
 
-      # TODO: save docker image...
-
   blackbox-test:
     needs: build
     runs-on: ubuntu-latest

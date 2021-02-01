@@ -52,3 +52,7 @@ docker run -v "${PWD}:/repository:ro" --rm colin-nolan/video-frame-fuse:formatte
 DOCKER_BUILDKIT=1 docker build --target tester --tag colin-nolan/video-frame-fuse:tester .
 docker run -u $(id -u):$(id -g) -v "${PWD}:/repository" --rm colin-nolan/video-frame-fuse:tester /repository/scripts/test/run-unit-tests.sh
 ```
+
+```
+export DYLD_FALLBACK_LIBRARY_PATH=/usr/local/Cellar/llvm/*/Toolchains/LLVM*.xctoolchain/usr/lib
+```
