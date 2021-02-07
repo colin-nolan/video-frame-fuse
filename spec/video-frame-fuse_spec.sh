@@ -54,8 +54,7 @@ Describe "video-frame-fuse"
             local frame_number="$1"
             local output_file="$2"
             local video_file="${3:-"${SAMPLE_FILE}"}"
-            # TODO: define frame
-            ffmpeg -i "${video_file}" -vf "select=eq(n\,1)" -vframes 1 "${output_file}" \
+            ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number})" -vframes 1 "${output_file}" \
                 &> "${temp_directory}/ffmpeg.${RANDOM}.out"
         }
 
@@ -96,6 +95,35 @@ Describe "video-frame-fuse"
             When call find "${mount_directory}"
             The status should equal 0
             The output should not equal ""
+        End
+
+        Describe "frame views"
+            Parameters
+                original
+                greyscale
+                black-and-white
+            End
+
+            It "initialise $1 frame images"
+                directory="${mount_directory}/by-frame/frame-27/$1"
+                BeforeRun mount_and_wait_until_ready
+                When run "${directory}/initialise.sh"
+                The status should equal 0
+                The stderr should not equal ""
+                The path "${directory}/frame-27.png" should be file
+                The path "${directory}/frame-27.jpg" should be file
+                The path "${directory}/frame-27.webp" should be file
+                The path "${directory}/frame-27.bmp" should be file
+            End
+        End
+
+        It "can initialise more than once"
+            directory="${mount_directory}/by-frame/frame-29/original"
+            BeforeRun mount_and_wait_until_ready
+            BeforeRun "${directory}/initialise.sh"
+            When run "${directory}/initialise.sh"
+            The status should equal 0
+            The stderr should not equal ""
         End
 
         It "correct frame extracted"
