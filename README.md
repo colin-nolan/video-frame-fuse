@@ -1,3 +1,5 @@
+![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)
+
 # Video Frame FUSE
 
 Will create `fuse-mount-location` if it does not exist.
