@@ -68,6 +68,7 @@ pub fn mount_filesystem(filesystem: VideoFileSystem, configuration: &Configurati
                 "Error during filesystem mount: {} (additional error messages may be printed above)",
                 error_string
             );
+            exit(1);
         }
     };
 }

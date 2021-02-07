@@ -17,7 +17,7 @@ Describe "video-frame-fuse"
         End
     End
 
-    Describe "CLI usage"
+    Describe "CLI mount"
         SAMPLE_FILE=spec/resources/sample.mp4
 
         setup() {
@@ -40,10 +40,10 @@ Describe "video-frame-fuse"
         }
 
         mount_and_wait_until_ready() {
-            local video_file="${1:-"${SAMPLE_FILE}"}"
-            local mount_directory="${2:-"${mount_directory}"}"
+            local mount_directory="${1:-"${mount_directory}"}"
+            local video_file="${2:-"${SAMPLE_FILE}"}"
 
-            RUST_LOG=info tool --logfile "${temp_directory}/mount.txt" "${video_file}" "${mount_directory}"
+            RUST_LOG=info tool --logfile "${temp_directory}/mount.log" "${video_file}" "${mount_directory}"
 
             while [[ ! $(ls -A "${mount_directory}") ]]; do
                 sleep 0.01
@@ -76,9 +76,22 @@ Describe "video-frame-fuse"
         BeforeEach "setup"
         AfterEach "cleanup"
 
-        It "can successfully mount"
+        It "can mount to new directory"
             When call mount_and_wait_until_ready
             The status should equal 0
+        End
+
+        It "can mount to existing directory"
+            BeforeCall "mkdir '${mount_directory}'"
+            When call mount_and_wait_until_ready
+            The status should equal 0
+        End
+
+        It "cannot mount to already mounted directory"
+            BeforeCall "mount_and_wait_until_ready '${mount_directory}'"
+            When call tool --foreground "${SAMPLE_FILE}" "${mount_directory}"
+            The status should not equal 0
+            The stderr should not equal ""
         End
 
         It "has expected directory structure"
