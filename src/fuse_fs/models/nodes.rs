@@ -135,7 +135,7 @@ impl<'a> FuseNodeStore<'a> {
         fuse_node_store.insert_directory(
             DirectoryFuseNode {
                 attributes: create_directory_attributes(ROOT_INODE_NUMBER),
-                name: "root".to_string(),
+                name: ".".to_string(),
                 file_information_generator: None,
                 children_inode_numbers: Default::default(),
                 children_to_generate_from_file_information: false,
