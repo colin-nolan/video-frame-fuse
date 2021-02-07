@@ -134,4 +134,4 @@ jobs:
       - name: Run tests
         run: |
           chmod +x ./target/release/video-frame-fuse
-          docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
+          docker run --privileged --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
