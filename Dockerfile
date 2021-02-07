@@ -42,6 +42,12 @@ FROM builder as tester
 
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --prefix /usr/local --yes
 
+RUN cargo install --git https://github.com/kornelski/dssim.git --tag 2.11.3 --root /usr/
+
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends \
+        ffmpeg
+
 
 ##################################################
 # Package for production
@@ -49,11 +55,12 @@ RUN curl -fsSL https://git.io/shellspec | sh -s -- --prefix /usr/local --yes
 FROM builder as packager
 
 WORKDIR /usr/local/src/video-frame-fuse
-COPY src/ ./src
-COPY resources/ ./resources
-COPY Cargo.* ./
 COPY scripts/build/run-release-build.sh .
+COPY resources/ ./resources
+COPY src/ ./src
+COPY Cargo.* ./
 
+RUN git init
 RUN ./run-release-build.sh .
 
 
