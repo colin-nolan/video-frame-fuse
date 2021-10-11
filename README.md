@@ -8,11 +8,11 @@ Will create `fuse-mount-location` if it does not exist.
 ## Docker
 TODO...
 In the root directory of the project:
-```
+```bash
 DOCKER_BUILDKIT=1 docker build --target production -t colinnolan/video-frame-fuse .
 ```
 
-```
+```bash
 docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/video-frame-fuse <video-location> <fuse-mount-location>
 ``` 
 

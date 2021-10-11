@@ -1,6 +1,8 @@
 Describe "video-frame-fuse"
+    script_directory="$(dirname "$0")"
+
     tool() {
-      "${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}" "$@"
+        "${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}" "$@"
     }
 
     Describe "CLI"
@@ -54,8 +56,16 @@ Describe "video-frame-fuse"
             local frame_number="$1"
             local output_file="$2"
             local video_file="${3:-"${SAMPLE_FILE}"}"
-            ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number})" -vframes 1 "${output_file}" \
+            local extra_video_filters="${4:-}"
+            ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number}),${extra_video_filters}" -vframes 1 "${output_file}" \
                 &> "${temp_directory}/ffmpeg.${RANDOM}.out"
+        }
+
+        extract_greyscale_frame() {
+            local frame_number="$1"
+            local output_file="$2"
+            local video_file="${3:-"${SAMPLE_FILE}"}"
+            extract_frame "${frame_number}" "${output_file}" "${video_file}" hue=s=0
         }
 
         get_mount_frame_location() {
@@ -73,21 +83,27 @@ Describe "video-frame-fuse"
                 | awk "{printf \"%.${decimal_places}f\", \$1}"
         }
 
+        get_number_of_colours() {
+            local image_location="$1"
+            "${script_directory}/scripts/images/get-image-colours.py" "${image_location}" \
+                | jq length
+        }
+
         BeforeEach "setup"
         AfterEach "cleanup"
 
-        It "can mount to new directory"
+        It "can mount to a new directory"
             When call mount_and_wait_until_ready
             The status should equal 0
         End
 
-        It "can mount to existing directory"
+        It "can mount to an existing directory"
             BeforeCall "mkdir '${mount_directory}'"
             When call mount_and_wait_until_ready
             The status should equal 0
         End
 
-        It "cannot mount to already mounted directory"
+        It "cannot mount to an already mounted directory"
             BeforeCall "mount_and_wait_until_ready '${mount_directory}'"
             When call tool --foreground "${SAMPLE_FILE}" "${mount_directory}"
             The status should not equal 0
@@ -128,23 +144,48 @@ Describe "video-frame-fuse"
                 The path "${directory}/frame-27.webp" should be file
                 The path "${directory}/frame-27.bmp" should be file
             End
+
+            It "can initialise $1 images more than once"
+                directory="${mount_directory}/by-frame/frame-29/$1"
+                BeforeRun mount_and_wait_until_ready
+                BeforeRun "${directory}/initialise.sh"
+                When run "${directory}/initialise.sh"
+                The status should equal 0
+                The stderr should not equal ""
+            End
+
+            It "$1 frame has expected content"
+                BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
+                BeforeCall mount_and_wait_until_ready
+                When call calculate_image_similarity "$(get_mount_frame_location 42 "$1")" "${temp_directory}/frame-42.png" 2
+                The status should equal 0
+                The output should equal 0.00
+            End
         End
 
-        It "can initialise more than once"
-            directory="${mount_directory}/by-frame/frame-29/original"
-            BeforeRun mount_and_wait_until_ready
-            BeforeRun "${directory}/initialise.sh"
-            When run "${directory}/initialise.sh"
-            The status should equal 0
-            The stderr should not equal ""
-        End
-
-        It "correct frame extracted"
-            BeforeCall "extract_frame 1 '${temp_directory}/frame-1.png'"
-            BeforeCall mount_and_wait_until_ready
-            When call calculate_image_similarity "$(get_mount_frame_location 1)" "${temp_directory}/frame-1.png" 3
-            The status should equal 0
-            The output should equal 0.000
-        End
+#        It "read original frame"
+#            BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
+#            BeforeCall mount_and_wait_until_ready
+#            When call calculate_image_similarity "$(get_mount_frame_location 42)" "${temp_directory}/frame-42.png" 2
+#            The status should equal 0
+#            The output should equal 0.00
+#        End
+#
+#        It "read greyscale frame"
+#            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
+#            BeforeCall mount_and_wait_until_ready
+#            When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png" 3
+#            The status should equal 0
+#            The output should equal 0.00
+#        End
+#
+#        It "read black-and-white frame"
+#            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
+#            BeforeCall mount_and_wait_until_ready
+#            When call calculate_image_similarity "$(get_mount_frame_location 36 black-and-white)" "${temp_directory}/frame-36.png" 2
+#            The output of function get_number_of_colours "$(get_mount_frame_location 36 black-and-white)" should equal 2
+#            The status should equal 0
+#            The output should equal 0.00
+#        End
     End
 End

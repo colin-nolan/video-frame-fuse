@@ -32,7 +32,7 @@ jobs:
       - name: Build format checker
         uses: docker/build-push-action@v2
         with:
-          tags: colin-nolan/video-frame-fuse:formatter
+          tags: colinnolan/video-frame-fuse:formatter
           context: .
           target: formatter
           load: true
@@ -40,12 +40,12 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Check format
-        run: docker run --rm -v "${PWD}:/checkout:ro" colin-nolan/video-frame-fuse:formatter /checkout/scripts/test/run-style-check.sh
+        run: docker run --rm -v "${PWD}:/checkout:ro" --entrypoint bash colinnolan/video-frame-fuse:formatter /checkout/scripts/test/run-style-check.sh
 
       - name: Build tester
         uses: docker/build-push-action@v2
         with:
-          tags: colin-nolan/video-frame-fuse:tester
+          tags: colinnolan/video-frame-fuse:tester
           context: .
           target: tester
           load: true
@@ -53,7 +53,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Run unit tests
-        run: docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-unit-tests.sh
+        run: docker run --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:tester /checkout/scripts/test/run-unit-tests.sh
 
   build:
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
       - name: Build builder
         uses: docker/build-push-action@v2
         with:
-          tags: colin-nolan/video-frame-fuse:builder
+          tags: colinnolan/video-frame-fuse:builder
           context: .
           target: builder
           load: true
@@ -86,7 +86,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Build binary
-        run: docker run --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:builder /checkout/scripts/build/run-release-build.sh
+        run: docker run --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:builder /checkout/scripts/build/run-release-build.sh
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
@@ -118,7 +118,7 @@ jobs:
       - name: Build tester
         uses: docker/build-push-action@v2
         with:
-          tags: colin-nolan/video-frame-fuse:tester
+          tags: colinnolan/video-frame-fuse:tester
           context: .
           target: tester
           load: true
@@ -134,4 +134,4 @@ jobs:
       - name: Run tests
         run: |
           chmod +x ./target/release/video-frame-fuse
-          docker run --privileged --rm -v "${PWD}:/checkout" colin-nolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
+          docker run --privileged --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
