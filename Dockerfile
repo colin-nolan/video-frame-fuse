@@ -34,6 +34,8 @@ RUN mkdir /.cargo && chmod 777 /.cargo
 ##################################################
 FROM builder as formatter
 
+ENTRYPOINT ["cargo", "fmt"]
+
 
 ##################################################
 # Tester
@@ -64,6 +66,9 @@ RUN git init
 RUN ./run-release-build.sh .
 
 
+##################################################
+# Production
+##################################################
 FROM ubuntu:20.04 as production
 
 ENV DEBIAN_FRONTEND=noninteractive
