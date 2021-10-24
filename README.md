@@ -55,7 +55,11 @@ docker run -u $(id -u):$(id -g) -v "${PWD}:/repository" --rm --workdir /reposito
 ```
 
 ### Mac Development
+[See README for OpenCV Rust library](https://github.com/twistedfall/opencv-rust#macos-package), which also includes a 
+troubleshooting section.
+
+On my machine, I needed to set
 ```
-export DYLD_FALLBACK_LIBRARY_PATH=/usr/local/Cellar/llvm/*/Toolchains/LLVM*.xctoolchain/usr/lib
+export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 ```
 

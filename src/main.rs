@@ -92,7 +92,7 @@ pub fn daemonize(stdout_location: Option<&str>, stderr_location: Option<&str>) {
         Ok(_) => {
             info!("Successfully daemonized (pid={})", process::id())
         }
-        Err(e) => panic!(e),
+        Err(e) => panic!("{}", e),
     }
 }
 

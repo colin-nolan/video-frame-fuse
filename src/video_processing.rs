@@ -5,7 +5,7 @@ use log::info;
 use opencv::core::{Mat, Vector};
 use opencv::imgcodecs::imencode;
 use opencv::imgproc::{cvt_color, threshold, THRESH_BINARY, THRESH_OTSU};
-use opencv::prelude::VideoCaptureTrait;
+use opencv::prelude::{VideoCaptureTrait, VideoCaptureTraitConst};
 use opencv::videoio::{VideoCapture, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES};
 use opencv::{imgproc, Error};
 use strum_macros::EnumIter;
@@ -124,13 +124,13 @@ fn get_frame(video_capture: &mut VideoCapture, frame_number: u64) -> Mat {
 }
 
 fn get_next_frame(video_capture: &mut VideoCapture) -> Mat {
-    let mut frame = opencv::core::Mat::default().unwrap();
+    let mut frame = opencv::core::Mat::default();
     video_capture.read(&mut frame).unwrap();
     return frame;
 }
 
 fn frame_to_greyscale(frame: &Mat) -> Result<Mat, Error> {
-    let mut greyscale_frame = Mat::default().unwrap();
+    let mut greyscale_frame = Mat::default();
     match cvt_color(frame, &mut greyscale_frame, imgproc::COLOR_BGR2GRAY, 0) {
         Ok(_) => Ok(greyscale_frame),
         Err(e) => Err(e),
@@ -146,7 +146,7 @@ fn frame_to_black_and_white(frame: &Mat, threshold_at: Option<f64>) -> Result<Ma
         }
         Some(x) => x,
     };
-    let mut black_and_white_frame = Mat::default().unwrap();
+    let mut black_and_white_frame = Mat::default();
     match threshold(
         frame,
         &mut black_and_white_frame,

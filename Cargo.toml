@@ -2,10 +2,10 @@
 name = "video-frame-fuse"
 version = "0.1.0"
 authors = ["Colin Nolan <cn580@alumni.york.ac.uk>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-opencv = "0.46.3"
+opencv = "0.56.0"
 fuse = { git = "https://github.com/colin-nolan/fuse-rs.git", rev="05c2acb4827a8266f8e8c55a13a4f75b7149e164" }
 libc = "0.2"
 users = "0.11"
