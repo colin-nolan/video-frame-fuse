@@ -1,8 +1,13 @@
 Describe "video-frame-fuse"
-    script_directory="$(dirname "$0")"
+    script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
+    tool_location="${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}"
 
     tool() {
-        "${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}" "$@"
+        if [[ ! -f "${tool_location}" ]]; then
+            >&2 echo "Tool does not exist in location: ${tool_location}"
+            exit 1
+        fi
+        "${tool_location}" "$@"
     }
 
     Describe "CLI"
@@ -47,8 +52,18 @@ Describe "video-frame-fuse"
 
             RUST_LOG=info tool --logfile "${temp_directory}/mount.log" "${video_file}" "${mount_directory}"
 
-            while [[ ! $(ls -A "${mount_directory}") ]]; do
+            timeout_at=$(( "$(date +%s)" + 5 ))
+            while [[ ! $(ls -A "${mount_directory}" 2> /dev/null) ]]; do
                 sleep 0.01
+                if [[ "$(date +%s)" -gt "${timeout_at}" ]]; then
+                    >&2 echo "Timed out waiting for mount to become available"
+                    if [[ -f "${temp_directory}/mount.log" ]]; then
+                        >&2 cat "${temp_directory}/mount.log"
+                    else
+                        >&2 echo "(No logs available)"
+                    fi
+                    exit 1
+                fi
             done
         }
 
@@ -56,9 +71,19 @@ Describe "video-frame-fuse"
             local frame_number="$1"
             local output_file="$2"
             local video_file="${3:-"${SAMPLE_FILE}"}"
-            local extra_video_filters="${4:-}"
-            ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number}),${extra_video_filters}" -vframes 1 "${output_file}" \
-                &> "${temp_directory}/ffmpeg.${RANDOM}.out"
+            local extra_video_filters=""
+            if [[ -n "$4" ]]; then
+                extra_video_filters=",$4"
+            fi
+
+            local logs_location="${temp_directory}/ffmpeg.${RANDOM}.out"
+            ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number})${extra_video_filters}" -vframes 1 "${output_file}" \
+                &> "${logs_location}"
+
+            if [[ ! -f "${output_file}" ]]; then
+                >&2 echo "Output file not produced - ffmpeg logs: $(cat "${logs_location}")"
+                exit 1
+            fi
         }
 
         extract_greyscale_frame() {
