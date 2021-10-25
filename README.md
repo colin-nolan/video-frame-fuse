@@ -92,7 +92,7 @@ cargo build
 
 Run the tests:
 ```bash
-./scripts/test/run-acceptance-tests.sh
+./scripts/test/run-acceptance-tests.sh [shellspec-args]
 ```
 *Note: see the [testing section in the Dockerfile](Dockerfile) for details about what tooling is required to run the 
 tests*
