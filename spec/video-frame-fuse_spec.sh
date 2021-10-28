@@ -1,6 +1,7 @@
 Describe "video-frame-fuse"
     script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
-    tool_location="${TOOL:="$(cd "${script_directory}" && git rev-parse --show-toplevel)/target/release/video-frame-fuse"}"
+    repository_root_directory="$(cd "${script_directory}" && git rev-parse --show-toplevel)"
+    tool_location="${TOOL:="${repository_root_directory}/target/release/video-frame-fuse"}"
 
     tool() {
         if [[ ! -f "${tool_location}" ]]; then
@@ -40,7 +41,11 @@ Describe "video-frame-fuse"
                     umount_command="diskutil umount force"
                     ;;
                 *)
-                    umount_command="umount -f"
+                    if [[ "${EUID}" -eq 0 ]]; then
+                        umount_command="umount -f"
+                    else
+                        umount_command="umount"
+                    fi
                     ;;
             esac
             ${umount_command} "${mount_directory}" &> "${temp_directory}/umount.txt"
@@ -122,14 +127,14 @@ Describe "video-frame-fuse"
             local frame_number="$1"
             local frame_type="$2"
             local property="$3"
-            local value="$4"
+            local math_value="$4"
 
             local config_location="${mount_directory}/by-frame/frame-${frame_number}/${frame_type}/config.yml"
             local temp_config_location="${temp_directory}/${RANDOM}.config.yml"
             cp "${config_location}" "${temp_config_location}"
-            # The inplace flag does not work if the config is in the mount directory, as yq wants to write a file in the
-            # same directory as the file, which in this case is read-only.
-            yq eval ".${property} = ${value}" -i "${temp_config_location}"
+            # The in-place flag does not work if the config is in the mount directory, as yq wants to write a file in
+            # the same directory as the file, which in this case is read-only.
+            yq eval ".${property} = ${math_value}" -i "${temp_config_location}"
             cp "${temp_config_location}" "${config_location}"
         }
 
@@ -144,8 +149,39 @@ Describe "video-frame-fuse"
 
         get_number_of_colours() {
             local image_location="$1"
-            "${script_directory}/scripts/images/get-image-colours.py" "${image_location}" \
+            "${repository_root_directory}/tests/acceptance/scripts/image/get-image-colours.py" "${image_location}" \
                 | jq length
+        }
+
+        math_value() {
+            local test_operator="$1"
+            local operand_2="$2"
+            # The subject is stored in the same variable name as the function name
+            local operand_1="${math_value}"
+
+            case "${test_operator}" in
+                -lt)
+                    operator="<"
+                    ;;
+                -le)
+                    operator="<="
+                    ;;
+                -eq)
+                    operator="=="
+                    ;;
+                -ge)
+                    operator=">="
+                    ;;
+                -gt)
+                    operator=">"
+                    ;;
+                *)
+                    >&2 echo "Unsupported math operator: ${test_operator}"
+                    exit 1
+                    ;;
+            esac
+
+            python -c "import sys; sys.exit(0 if ${operand_1} ${operator} ${operand_2} else 1)"
         }
 
         BeforeEach "setup"
@@ -219,25 +255,39 @@ Describe "video-frame-fuse"
             BeforeCall mount_and_wait_until_ready
             When call calculate_image_similarity "$(get_mount_frame_location 42 original)" "${temp_directory}/frame-42.png"
             The status should equal 0
-            The output should equal 0.00
+            The output should satisfy math_value -lt 0.01
         End
 
-        It "read greyscale frame"
+        It "greyscale frame contents"
             BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
             BeforeCall mount_and_wait_until_ready
             When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png"
             The status should equal 0
-            The output should equal 0.00
+            The output should satisfy math_value -lt 0.01
         End
 
-        It "read black-and-white frame" this
+        It "black-and-white frame contents"
             BeforeCall "extract_black_and_white_frame 13 '${temp_directory}/frame-13.png' 50"
             BeforeCall mount_and_wait_until_ready
             BeforeCall "change_config 13 black-and-white threshold 128"
             When call calculate_image_similarity "$(get_mount_frame_location 13 black-and-white)" "${temp_directory}/frame-13.png" 2
-#            The output of function get_number_of_colours "$(get_mount_frame_location 13 black-and-white)" should equal 2
             The status should equal 0
-            The output should satisfy test -lt 0.1
+            The output should satisfy math_value -lt 0.1
+        End
+
+        It "check greyscale frame contain number of colours in correct range"
+            BeforeCall mount_and_wait_until_ready
+            When call get_number_of_colours "$(get_mount_frame_location 13 greyscale)"
+            The status should equal 0
+            The output should satisfy math_value -le 256
+            The output should satisfy math_value -gt 2
+        End
+
+        It "check black-and-white frame only contains 2 colours"
+            BeforeCall mount_and_wait_until_ready
+            When call get_number_of_colours "$(get_mount_frame_location 13 black-and-white)"
+            The status should equal 0
+            The output should equal 2
         End
     End
 End
