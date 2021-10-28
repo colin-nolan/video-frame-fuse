@@ -48,7 +48,9 @@ RUN cargo install --git https://github.com/kornelski/dssim.git --tag 2.11.3 --ro
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
-        ffmpeg
+        imagemagick \
+        ffmpeg \
+        yq
 
 
 ##################################################

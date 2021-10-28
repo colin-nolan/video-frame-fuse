@@ -78,7 +78,7 @@ Describe "video-frame-fuse"
 
             local logs_location="${temp_directory}/ffmpeg.${RANDOM}.out"
             ffmpeg -i "${video_file}" -vf "select=eq(n\,${frame_number})${extra_video_filters}" -vframes 1 "${output_file}" \
-                &> "${logs_location}"
+                2> "${logs_location}"
 
             if [[ ! -f "${output_file}" ]]; then
                 >&2 echo "Output file not produced - ffmpeg logs: $(cat "${logs_location}")"
@@ -93,6 +93,24 @@ Describe "video-frame-fuse"
             extract_frame "${frame_number}" "${output_file}" "${video_file}" hue=s=0
         }
 
+        extract_black_and_white_frame() {
+            local frame_number="$1"
+            local output_file="$2"
+            local threshold_percentage="${3:-50}"
+            local video_file="${4:-"${SAMPLE_FILE}"}"
+
+            local grayscale_frame_location="${temp_directory}/bw-greyscale.${RANDOM}.${output_file##*.}"
+            extract_greyscale_frame "${frame_number}" "${grayscale_frame_location}" "${video_file}"
+
+            local logs_location="${temp_directory}/bw-convert.${RANDOM}.out"
+            convert "${grayscale_frame_location}" -threshold "${threshold_percentage}%" "${output_file}" 2> "${logs_location}"
+
+            if [[ ! -f "${output_file}" ]]; then
+                >&2 echo "Output file not produced - ImageMagick convert logs: $(cat "${logs_location}")"
+                exit 1
+            fi
+        }
+
         get_mount_frame_location() {
             local frame_number="$1"
             local frame_type="${2:-original}"
@@ -100,10 +118,26 @@ Describe "video-frame-fuse"
             echo "${mount_directory}/by-frame/frame-${frame_number}/${frame_type}/frame-${frame_number}.${image_type}"
         }
 
+        change_config() {
+            local frame_number="$1"
+            local frame_type="$2"
+            local property="$3"
+            local value="$4"
+
+            local config_location="${mount_directory}/by-frame/frame-${frame_number}/${frame_type}/config.yml"
+            local temp_config_location="${temp_directory}/${RANDOM}.config.yml"
+            cp "${config_location}" "${temp_config_location}"
+            # The inplace flag does not work if the config is in the mount directory, as yq wants to write a file in the
+            # same directory as the file, which in this case is read-only.
+            yq eval ".${property} = ${value}" -i "${temp_config_location}"
+            cp "${temp_config_location}" "${config_location}"
+        }
+
         calculate_image_similarity() {
             local image_1_location="$1"
             local image_2_location="$2"
             local decimal_places="${3:-8}"
+
             dssim "${image_1_location}" "${image_2_location}" \
                 | awk "{printf \"%.${decimal_places}f\", \$1}"
         }
@@ -151,14 +185,14 @@ Describe "video-frame-fuse"
             The output should not equal ""
         End
 
-        Describe "frame views"
+        Describe "can initialise"
             Parameters
-                original extract_frame
-                greyscale extract_greyscale_frame
-                black-and-white extract_greyscale_frame
+                original
+                greyscale
+                black-and-white
             End
 
-            It "initialise $1 frame images"
+            It "$1 frame images"
                 directory="${mount_directory}/by-frame/frame-27/$1"
                 BeforeRun mount_and_wait_until_ready
                 When run "${directory}/initialise.sh"
@@ -170,7 +204,7 @@ Describe "video-frame-fuse"
                 The path "${directory}/frame-27.bmp" should be file
             End
 
-            It "can initialise $1 images more than once"
+            It "$1 images more than once"
                 directory="${mount_directory}/by-frame/frame-29/$1"
                 BeforeRun mount_and_wait_until_ready
                 BeforeRun "${directory}/initialise.sh"
@@ -178,40 +212,32 @@ Describe "video-frame-fuse"
                 The status should equal 0
                 The stderr should not equal ""
             End
-
-            # TODO: to replace commented out tests below?
-#            It "$1 frame has expected content (using $2)"
-#                BeforeCall "$2 42 '${temp_directory}/frame-42.png'"
-#                BeforeCall mount_and_wait_until_ready
-#                When call calculate_image_similarity "$(get_mount_frame_location 42 "$1")" "${temp_directory}/frame-42.png" 2
-#                The status should equal 0
-#                The output should equal 0.00
-#            End
         End
 
-#        It "read original frame"
-#            BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
-#            BeforeCall mount_and_wait_until_ready
-#            When call calculate_image_similarity "$(get_mount_frame_location 42)" "${temp_directory}/frame-42.png" 2
-#            The status should equal 0
-#            The output should equal 0.00
-#        End
-#
-#        It "read greyscale frame"
-#            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
-#            BeforeCall mount_and_wait_until_ready
-#            When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png" 3
-#            The status should equal 0
-#            The output should equal 0.00
-#        End
-#
-#        It "read black-and-white frame"
-#            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
-#            BeforeCall mount_and_wait_until_ready
-#            When call calculate_image_similarity "$(get_mount_frame_location 36 black-and-white)" "${temp_directory}/frame-36.png" 2
-#            The output of function get_number_of_colours "$(get_mount_frame_location 36 black-and-white)" should equal 2
-#            The status should equal 0
-#            The output should equal 0.00
-#        End
+        It "original frame contents"
+            BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
+            BeforeCall mount_and_wait_until_ready
+            When call calculate_image_similarity "$(get_mount_frame_location 42 original)" "${temp_directory}/frame-42.png"
+            The status should equal 0
+            The output should equal 0.00
+        End
+
+        It "read greyscale frame"
+            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
+            BeforeCall mount_and_wait_until_ready
+            When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png"
+            The status should equal 0
+            The output should equal 0.00
+        End
+
+        It "read black-and-white frame" this
+            BeforeCall "extract_black_and_white_frame 13 '${temp_directory}/frame-13.png' 50"
+            BeforeCall mount_and_wait_until_ready
+            BeforeCall "change_config 13 black-and-white threshold 128"
+            When call calculate_image_similarity "$(get_mount_frame_location 13 black-and-white)" "${temp_directory}/frame-13.png" 2
+#            The output of function get_number_of_colours "$(get_mount_frame_location 13 black-and-white)" should equal 2
+            The status should equal 0
+            The output should satisfy test -lt 0.1
+        End
     End
 End
