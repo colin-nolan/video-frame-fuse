@@ -50,6 +50,7 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
         ffmpeg \
         imagemagick \
+        jq \
         python-is-python3 \
         python3 \
         wget
