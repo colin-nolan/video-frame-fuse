@@ -127,14 +127,14 @@ Describe "video-frame-fuse"
             local frame_number="$1"
             local frame_type="$2"
             local property="$3"
-            local math_value="$4"
+            local value="$4"
 
             local config_location="${mount_directory}/by-frame/frame-${frame_number}/${frame_type}/config.yml"
             local temp_config_location="${temp_directory}/${RANDOM}.config.yml"
             cp "${config_location}" "${temp_config_location}"
             # The in-place flag does not work if the config is in the mount directory, as yq wants to write a file in
             # the same directory as the file, which in this case is read-only.
-            yq eval ".${property} = ${math_value}" -i "${temp_config_location}"
+            yq eval ".${property} = ${value}" -i "${temp_config_location}"
             cp "${temp_config_location}" "${config_location}"
         }
 
@@ -157,7 +157,7 @@ Describe "video-frame-fuse"
             local test_operator="$1"
             local operand_2="$2"
             # The subject is stored in the same variable name as the function name
-            local operand_1="${math_value}"
+            local operand_1="${math_value:?}"
 
             case "${test_operator}" in
                 -lt)

@@ -53,11 +53,15 @@ RUN apt-get install -y --no-install-recommends \
         jq \
         python-is-python3 \
         python3 \
+        python3-pip \
         wget
 
 # XXX: will break on non amd64, e.g. RPi
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.13.5/yq_linux_amd64 -O /usr/bin/yq \
     && chmod +x /usr/bin/yq
+
+COPY tests/acceptance/scripts/image/requirements.txt /tmp/test-requirements.txt
+RUN pip install -r /tmp/test-requirements.txt
 
 
 ##################################################
