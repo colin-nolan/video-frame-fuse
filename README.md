@@ -110,3 +110,10 @@ you are using Command Line Tools, try setting:
 ```
 export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 ```
+
+
+## Legal
+
+AGPL v3.0 (contact for other licencing). Copyright 2020, 2021 Colin Nolan.
+
+This work is in no way related to the company that I work for.
