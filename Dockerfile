@@ -24,7 +24,7 @@ ENV RUSTUP_HOME=/opt/rustup
 ENV PATH="${PATH}:/opt/cargo/bin"
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain stable --profile default --no-modify-path -y
+    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.56.0 --profile default --no-modify-path -y
 # Allow unknown users to cargo
 RUN mkdir /.cargo && chmod 777 /.cargo
 
@@ -44,13 +44,17 @@ FROM builder as tester
 
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --prefix /usr/local --yes
 
-RUN cargo install --git https://github.com/kornelski/dssim.git --tag 2.11.3 --root /usr/
+RUN cargo install --git https://github.com/kornelski/dssim.git --tag 3.1.0 --root /usr/
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
-        imagemagick \
         ffmpeg \
-        yq
+        imagemagick \
+        wget
+
+# XXX: will break on non amd64, e.g. RPi
+RUN wget https://github.com/mikefarah/yq/releases/download/v4.13.5/yq_linux_amd64 -O /usr/bin/yq \
+    && chmod +x /usr/bin/yq
 
 
 ##################################################
