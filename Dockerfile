@@ -50,6 +50,8 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
         ffmpeg \
         imagemagick \
+        python-is-python3 \
+        python3 \
         wget
 
 # XXX: will break on non amd64, e.g. RPi
