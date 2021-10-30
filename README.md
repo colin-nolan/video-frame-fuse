@@ -25,19 +25,24 @@ Setting RUST_LOG to one of {error, warn, info debug, trace} will set the logging
 ```
 
 ### Mounting
-To mount the frames of the video:
+To mount the frames of the video in a directory:
 ![](docs/casts/mount/mount.cast.svg)
 
 ### Image Views
 #### Original
 ![](docs/casts/original/original.cast.svg)
-*Note: initialising all the image formats is unlikely something done often!*
+![](docs/casts/original/view.resized.jpg)
+*Note: initialising all the image formats is unlikely a common operation!*
 
-![](docs/casts/original/view.png)
+#### Greyscale
+![](docs/casts/greyscale/greyscale.cast.svg)
+![](docs/casts/greyscale/view.resized.jpg)
 
 
 ### Unmounting
+Clean up the mount using `unmount`:
 ![](docs/casts/unmount/unmount.cast.svg)
+
 
 ## Docker
 TODO...
@@ -48,7 +53,7 @@ DOCKER_BUILDKIT=1 docker build --target production -t colinnolan/video-frame-fus
 
 ```bash
 docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/video-frame-fuse <video-location> <fuse-mount-location>
-``` 
+```
 
 
 ## Dependencies
