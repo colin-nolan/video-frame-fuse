@@ -1,7 +1,10 @@
 [![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)](https://github.com/colin-nolan/video-frame-fuse/actions)
 
 # Video Frame FUSE
-Will create `fuse-mount-location` if it does not exist.
+_FUSE mount for accessing frames in a video as images - supports different image types and filters._
+
+## Usage
+
 ```bash
 USAGE:
     video-frame-fuse [FLAGS] [OPTIONS] <video-location> <fuse-mount-location>
@@ -16,10 +19,25 @@ OPTIONS:
 
 ARGS:
     <video-location>         location of the video file to use
-    <fuse-mount-location>    location of directory to mount fuse
+    <fuse-mount-location>    location of directory to mount fuse (will create if does not exist)
 
 Setting RUST_LOG to one of {error, warn, info debug, trace} will set the logging verbosity, e.g. RUST_LOG=info
 ```
+
+### Mounting
+To mount the frames of the video:
+![](docs/casts/mount/mount.cast.svg)
+
+### Image Views
+#### Original
+![](docs/casts/original/original.cast.svg)
+*Note: initialising all the image formats is unlikely something done often!*
+
+![](docs/casts/original/view.png)
+
+
+### Unmounting
+![](docs/casts/unmount/unmount.cast.svg)
 
 ## Docker
 TODO...
