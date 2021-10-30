@@ -80,6 +80,14 @@ RUN ./run-release-build.sh .
 
 
 ##################################################
+# Extraction
+##################################################
+FROM scratch AS export
+
+COPY --from=packager /usr/local/src/video-frame-fuse/target/release/video-frame-fuse /video-frame-fuse
+
+
+##################################################
 # Production
 ##################################################
 FROM ubuntu:20.04 as production

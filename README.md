@@ -109,11 +109,21 @@ brew cask install osxfuse
 
 
 ## Development
-FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or 
+### Building 
+FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or
 `fuse-devel`. `pkg-config` is also required for locating libraries and headers.
 
-### Building 
-TODO
+#### Local
+```bash
+cargo build --release
+# Binary found in the release build directory: target/release/video-frame-fuse 
+```
+
+#### Docker
+```bash
+DOCKER_BUILDKIT=1 docker build --target export --output output .
+# Binary found in the output directory: output/video-frame-fuse 
+```
 
 ### Testing
 #### Unit
@@ -142,12 +152,7 @@ docker run -u $(id -u):$(id -g) -v "${PWD}:/repository" --rm --workdir /reposito
 
 #### Acceptance
 ##### Local
-Before running the acceptance tests, build the software with:
-```bash
-cargo build
-```
-
-Run the tests:
+Before running the acceptance tests, build the software. Run the tests:
 ```bash
 ./scripts/test/run-acceptance-tests.sh [shellspec-args]
 ```
