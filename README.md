@@ -1,4 +1,4 @@
-![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)
+[![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)](https://github.com/colin-nolan/video-frame-fuse/actions)
 
 # Video Frame FUSE
 Will create `fuse-mount-location` if it does not exist.
