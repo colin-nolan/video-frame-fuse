@@ -38,6 +38,13 @@ To mount the frames of the video in a directory:
 ![](docs/casts/greyscale/greyscale.cast.svg)
 ![](docs/casts/greyscale/view.resized.jpg)
 
+#### Black and White
+![](docs/casts/black-and-white/black-and-white.1.cast.svg)
+![](docs/casts/black-and-white/view.1.png)
+
+The white/black threshold can be edited by changing the `config.yml` file.
+![](docs/casts/black-and-white/black-and-white.2.cast.svg)
+![](docs/casts/black-and-white/view.2.png)
 
 ### Unmounting
 Clean up the mount using `unmount`:
