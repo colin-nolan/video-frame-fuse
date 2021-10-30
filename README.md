@@ -3,6 +3,24 @@
 # Video Frame FUSE
 _FUSE mount for accessing the frames in a video as images - supports different image types and filters._
 
+
+## Installation
+Prebuilt binaries are available as [part of GitHub Releases](https://github.com/colin-nolan/video-frame-fuse/releases).
+```bash
+# Example configuration
+version=0.1.0
+arch=x86_64
+
+# sudo may be required to run these commands
+curl -fSL "https://github.com/colin-nolan/video-frame-fuse/releases/download/${version}/video-frame-fuse-${arch}" -o /usr/local/bin/video-frame-fuse
+chmod +x /usr/local/bin/video-frame-fuse
+```
+
+FUSE is required to run the software (`apt install fuse`; `brew cask install osxfuse`; `yum install fuse`).
+
+For information on how to build a binary for your system, please see the [development section](#development).
+
+
 ## Usage
 ```text
 USAGE:
