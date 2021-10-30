@@ -250,44 +250,46 @@ Describe "video-frame-fuse"
             End
         End
 
-        It "original frame contents"
-            BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
-            BeforeCall mount_and_wait_until_ready
-            When call calculate_image_similarity "$(get_mount_frame_location 42 original)" "${temp_directory}/frame-42.png"
-            The status should equal 0
-            The output should satisfy math_value -lt 0.01
-        End
+        Describe "can deliver"
+            It "original frame contents"
+                BeforeCall "extract_frame 42 '${temp_directory}/frame-42.png'"
+                BeforeCall mount_and_wait_until_ready
+                When call calculate_image_similarity "$(get_mount_frame_location 42 original)" "${temp_directory}/frame-42.png"
+                The status should equal 0
+                The output should satisfy math_value -lt 0.01
+            End
 
-        It "greyscale frame contents"
-            BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
-            BeforeCall mount_and_wait_until_ready
-            When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png"
-            The status should equal 0
-            The output should satisfy math_value -lt 0.01
-        End
+            It "greyscale frame contents"
+                BeforeCall "extract_greyscale_frame 36 '${temp_directory}/frame-36.png'"
+                BeforeCall mount_and_wait_until_ready
+                When call calculate_image_similarity "$(get_mount_frame_location 36 greyscale)" "${temp_directory}/frame-36.png"
+                The status should equal 0
+                The output should satisfy math_value -lt 0.01
+            End
 
-        It "black-and-white frame contents"
-            BeforeCall "extract_black_and_white_frame 13 '${temp_directory}/frame-13.png' 50"
-            BeforeCall mount_and_wait_until_ready
-            BeforeCall "change_config 13 black-and-white threshold 128"
-            When call calculate_image_similarity "$(get_mount_frame_location 13 black-and-white)" "${temp_directory}/frame-13.png" 2
-            The status should equal 0
-            The output should satisfy math_value -lt 0.1
-        End
+            It "black-and-white frame contents"
+                BeforeCall "extract_black_and_white_frame 13 '${temp_directory}/frame-13.png' 50"
+                BeforeCall mount_and_wait_until_ready
+                BeforeCall "change_config 13 black-and-white threshold 128"
+                When call calculate_image_similarity "$(get_mount_frame_location 13 black-and-white)" "${temp_directory}/frame-13.png" 2
+                The status should equal 0
+                The output should satisfy math_value -lt 0.1
+            End
 
-        It "check greyscale frame contain number of colours in correct range"
-            BeforeCall mount_and_wait_until_ready
-            When call get_number_of_colours "$(get_mount_frame_location 13 greyscale)"
-            The status should equal 0
-            The output should satisfy math_value -le 256
-            The output should satisfy math_value -gt 2
-        End
+            It "greyscale frame with number of colours in correct range"
+                BeforeCall mount_and_wait_until_ready
+                When call get_number_of_colours "$(get_mount_frame_location 13 greyscale)"
+                The status should equal 0
+                The output should satisfy math_value -le 256
+                The output should satisfy math_value -gt 2
+            End
 
-        It "check black-and-white frame only contains 2 colours"
-            BeforeCall mount_and_wait_until_ready
-            When call get_number_of_colours "$(get_mount_frame_location 13 black-and-white)"
-            The status should equal 0
-            The output should equal 2
+            It "black-and-white frame with only 2 colours"
+                BeforeCall mount_and_wait_until_ready
+                When call get_number_of_colours "$(get_mount_frame_location 13 black-and-white)"
+                The status should equal 0
+                The output should equal 2
+            End
         End
     End
 End
