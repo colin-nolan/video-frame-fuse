@@ -533,9 +533,9 @@ checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
 
 [[package]]
 name = "opencv"
-version = "0.56.0"
+version = "0.56.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76086f36c3763579dbf48d49a1c008b67d4355c731599f251d8e02269bd91519"
+checksum = "86765e949bc601a045843149327742d49881417bf0c030557f1d978acd54b6f1"
 dependencies = [
  "cc",
  "clang",
@@ -554,9 +554,9 @@ dependencies = [
 
 [[package]]
 name = "opencv-binding-generator"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ea80b3dfb536a6bea8a131c0fee1b2abaf88ff0635cc7e606327e0f2fe0c4e6"
+checksum = "c035309dcc5e49030a576e4bbaa8473bec84e1bdf9aff2bd39d7bcdd3e8f8fce"
 dependencies = [
  "clang",
  "clang-sys",
@@ -605,9 +605,9 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.30"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
@@ -732,9 +732,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d010a1623fbd906d51d650a9916aaefc05ffa0e4053ff7fe601167f3e715d194"
+checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -752,9 +752,9 @@ dependencies = [
 
 [[package]]
 name = "test-case"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b114ece25254e97bf48dd4bfc2a12bad0647adacfe4cae1247a9ca6ad302cec"
+checksum = "c7cad0a06f9a61e94355aa3b3dc92d85ab9c83406722b1ca5e918d4297c12c23"
 dependencies = [
  "cfg-if",
  "proc-macro2",
