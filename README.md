@@ -1,7 +1,9 @@
 [![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)](https://github.com/colin-nolan/video-frame-fuse/actions)
 
 # Video Frame FUSE
-Will create `fuse-mount-location` if it does not exist.
+_FUSE mount for accessing frames in a video as images - supports different image types and filters._
+
+## Usage
 ```bash
 USAGE:
     video-frame-fuse [FLAGS] [OPTIONS] <video-location> <fuse-mount-location>
@@ -16,10 +18,37 @@ OPTIONS:
 
 ARGS:
     <video-location>         location of the video file to use
-    <fuse-mount-location>    location of directory to mount fuse
+    <fuse-mount-location>    location of directory to mount fuse (will create if does not exist)
 
 Setting RUST_LOG to one of {error, warn, info debug, trace} will set the logging verbosity, e.g. RUST_LOG=info
 ```
+
+### Mounting
+To mount the frames of the video in a directory:
+![](docs/casts/mount/mount.cast.svg)
+
+### Image Views
+#### Original
+![](docs/casts/original/original.cast.svg)
+![](docs/casts/original/view.resized.jpg)
+*Note: initialising all the image formats is unlikely a common operation!*
+
+#### Greyscale
+![](docs/casts/greyscale/greyscale.cast.svg)
+![](docs/casts/greyscale/view.resized.jpg)
+
+#### Black and White
+![](docs/casts/black-and-white/black-and-white.1.cast.svg)
+![](docs/casts/black-and-white/view.1.png)
+
+The white/black threshold can be edited by changing the `config.yml` file.
+![](docs/casts/black-and-white/black-and-white.2.cast.svg)
+![](docs/casts/black-and-white/view.2.png)
+
+### Unmounting
+Clean up the mount using `unmount`:
+![](docs/casts/unmount/unmount.cast.svg)
+
 
 ## Docker
 TODO...
@@ -30,13 +59,11 @@ DOCKER_BUILDKIT=1 docker build --target production -t colinnolan/video-frame-fus
 
 ```bash
 docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/video-frame-fuse <video-location> <fuse-mount-location>
-``` 
+```
 
 
 ## Dependencies
-FUSE must be installed to build or run programs that use fuse-rs.
-
-See more:
+FUSE must be installed to build and run this software. This is a dependency of fuse-rs:
 https://github.com/zargony/fuse-rs/blob/master/README.md#dependencies
 
 ### Linux (Debian)
@@ -55,8 +82,8 @@ brew cask install osxfuse
 
 
 ## Development
-To build, FUSE libraries and headers are required. The package is usually called `libfuse-dev` or `fuse-devel`. 
-Also `pkg-config` is required for locating libraries and headers.
+FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or 
+`fuse-devel`. `pkg-config` is also required for locating libraries and headers.
 
 ### Testing
 #### Unit
@@ -113,7 +140,6 @@ export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 
 
 ## Legal
-
 AGPL v3.0 (contact for other licencing). Copyright 2020, 2021 Colin Nolan.
 
 This work is in no way related to the company that I work for.

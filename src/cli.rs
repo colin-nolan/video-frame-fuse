@@ -41,7 +41,7 @@ pub fn parse_configuration() -> Configuration {
         )
         .arg(
             Arg::with_name(FUSE_MOUNT_LOCATION_PARAMETER)
-                .help("location of directory to mount fuse")
+                .help("location of directory to mount fuse (will create if does not exist)")
                 .required(true),
         )
         .after_help(indoc! {"
