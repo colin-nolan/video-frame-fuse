@@ -1,7 +1,7 @@
 [![CI](https://github.com/colin-nolan/video-frame-fuse/workflows/CI/badge.svg)](https://github.com/colin-nolan/video-frame-fuse/actions)
 
 # Video Frame FUSE
-_FUSE mount for accessing frames in a video as images - supports different image types and filters._
+_FUSE mount for accessing the frames in a video as images - supports different image types and filters._
 
 ## Usage
 ```bash

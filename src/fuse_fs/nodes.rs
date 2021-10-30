@@ -201,7 +201,9 @@ pub fn create_frame_view(
             file_informations.push(FileInformation::new_with_data(
                 "config.yml",
                 match &default_configuration {
-                    ConfigurationHolder::BlackAndWhite(x) => x.to_yaml().unwrap().into_bytes(),
+                    ConfigurationHolder::BlackAndWhite(configuration) => {
+                        configuration.to_yaml().unwrap().into_bytes()
+                    }
                     _ => vec![],
                 },
                 true,

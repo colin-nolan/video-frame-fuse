@@ -18,8 +18,7 @@ pub fn parse_configuration() -> Configuration {
     let matches = App::new("Video Frame FUSE")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Colin Nolan <cn580@alumni.york.ac.uk>")
-        // TODO
-        // .about("Does awesome things")
+        .about("FUSE mount for accessing the frames in a video as images - supports different image types and filters ")
         .arg(
             Arg::with_name(LOG_LOCATION)
                 .long(&format!("--{}", LOG_LOCATION))

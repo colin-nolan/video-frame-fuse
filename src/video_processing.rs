@@ -24,7 +24,10 @@ pub enum ImageType {
 
 pub fn get_number_of_frames(video_location: &str) -> u64 {
     let video_capture = open_video(video_location);
-    let number_of_frames = video_capture.get(CAP_PROP_FRAME_COUNT).unwrap() as u64;
+    let number_of_frames = video_capture.get(CAP_PROP_FRAME_COUNT).expect(&format!(
+        "Error getting number of frames for video: {}",
+        video_location
+    )) as u64;
     close_video(video_capture);
     return number_of_frames;
 }
@@ -96,16 +99,22 @@ pub fn frame_matrix_to_vec(frame: &mut Mat, convert_to: ImageType) -> Vec<u8> {
         buffer,
         parameters,
     )
-    .unwrap();
+    .expect(&format!(
+        "Could not encode image into: {}",
+        convert_to.to_string()
+    ));
     return buffer.to_vec();
 }
 
 fn open_video(file_name: &str) -> VideoCapture {
-    VideoCapture::from_file(file_name, 0).unwrap()
+    VideoCapture::from_file(file_name, 0).expect(&format!(
+        "Error creating VideoCapture from file: {}",
+        file_name
+    ))
 }
 
 fn close_video(mut video_capture: VideoCapture) {
-    video_capture.release().unwrap();
+    video_capture.release().expect("Error closing VideoCapture");
 }
 
 #[cached(size = 25)]

@@ -30,9 +30,9 @@ impl Filesystem for VideoFileSystem<'_> {
             Some(fuse_node) => {
                 let attributes = match fuse_node {
                     FuseNode::Directory(x) => x.attributes,
-                    FuseNode::File(x) => {
-                        requires_listing = !x.information.listed;
-                        x.get_attributes()
+                    FuseNode::File(file_node) => {
+                        requires_listing = !file_node.information.listed;
+                        file_node.get_attributes()
                     }
                 };
                 inode_number = attributes.ino;
@@ -110,7 +110,7 @@ impl Filesystem for VideoFileSystem<'_> {
         reply: ReplyData,
     ) {
         let node = match self.nodes.get_file_node_mut(ino) {
-            Some(x) => x,
+            Some(file_node) => file_node,
             None => {
                 error!("Node not found (read): {}", ino);
                 reply.error(ENOENT);

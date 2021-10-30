@@ -7,7 +7,6 @@ use users::{get_current_gid, get_current_uid};
 
 pub const ROOT_INODE_NUMBER: u64 = 1;
 
-// TODO: sort
 pub fn create_directory_attributes(inode_number: u64) -> FileAttr {
     return FileAttr {
         ino: inode_number as u64,
@@ -449,7 +448,7 @@ mod tests {
         let mut node_store = FuseNodeStore::new();
         let inode_number = node_store
             .create_and_insert_directory("", node_store.get_root_directory().get_inode_number());
-        // TODO
+        // TODO: handle unwrap
         match node_store.get_node(inode_number).unwrap() {
             FuseNode::Directory(x) => {
                 assert_eq!(x.get_inode_number(), inode_number)
@@ -467,7 +466,7 @@ mod tests {
             FileInformation::new("", Box::new(|| vec![]), false, false),
             node_store.get_root_directory().get_inode_number(),
         );
-        // TODO
+        // TODO: handle unwrap
         match node_store.get_node(inode_number).unwrap() {
             FuseNode::Directory(_) => {
                 panic!("Expected file")
