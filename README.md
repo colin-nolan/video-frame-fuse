@@ -4,7 +4,7 @@
 _FUSE mount for accessing the frames in a video as images - supports different image types and filters._
 
 ## Usage
-```bash
+```text
 USAGE:
     video-frame-fuse [FLAGS] [OPTIONS] <video-location> <fuse-mount-location>
 
@@ -57,8 +57,17 @@ In the root directory of the project:
 DOCKER_BUILDKIT=1 docker build --target production -t colinnolan/video-frame-fuse .
 ```
 
+TODO: examine
 ```bash
-docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/video-frame-fuse <video-location> <fuse-mount-location>
+docker run --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/video-frame-fuse <video-location> <fuse-mount-location>
+
+# e.g.
+docker run --rm \
+    -v "${PWD}/tests/acceptance/resources/sample.mp4":/sample.mp4 \
+    -v /tmp/mountpoint:/mountpoint:shared \
+    --device /dev/fuse \
+    --cap-add SYS_ADMIN \
+    colinnolan/video-frame-fuse /sample.mp4 /mountpoint
 ```
 
 
@@ -84,6 +93,9 @@ brew cask install osxfuse
 ## Development
 FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or 
 `fuse-devel`. `pkg-config` is also required for locating libraries and headers.
+
+### Building 
+TODO
 
 ### Testing
 #### Unit
@@ -131,12 +143,20 @@ tests*
 
 
 ### Mac Development
-[See README for OpenCV Rust library](https://github.com/twistedfall/opencv-rust#macos-package), which also includes a 
+[See README for the OpenCV Rust library](https://github.com/twistedfall/opencv-rust#macos-package), which also includes a 
 troubleshooting section. If the build fails with a `dyld: Library not loaded: @rpath/libclang.dylib` error message, and
 you are using Command Line Tools, try setting:
-```
+```bash
 export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 ```
+
+
+### Further Development Ideas
+- By-time view.
+- File timestamps according to video.
+- Black and white logging when auto select.
+- Debugging throughout.
+- Improved Error handling.
 
 
 ## Legal
