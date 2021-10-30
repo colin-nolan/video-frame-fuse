@@ -4,7 +4,6 @@
 _FUSE mount for accessing frames in a video as images - supports different image types and filters._
 
 ## Usage
-
 ```bash
 USAGE:
     video-frame-fuse [FLAGS] [OPTIONS] <video-location> <fuse-mount-location>
@@ -64,9 +63,7 @@ docker run --privileged --device /dev/fuse --cap-add SYS_ADMIN --rm colinnolan/v
 
 
 ## Dependencies
-FUSE must be installed to build or run programs that use fuse-rs.
-
-See more:
+FUSE must be installed to build and run this software. This is a dependency of fuse-rs:
 https://github.com/zargony/fuse-rs/blob/master/README.md#dependencies
 
 ### Linux (Debian)
@@ -85,8 +82,8 @@ brew cask install osxfuse
 
 
 ## Development
-To build, FUSE libraries and headers are required. The package is usually called `libfuse-dev` or `fuse-devel`. 
-Also `pkg-config` is required for locating libraries and headers.
+FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or 
+`fuse-devel`. `pkg-config` is also required for locating libraries and headers.
 
 ### Testing
 #### Unit
@@ -143,7 +140,6 @@ export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 
 
 ## Legal
-
 AGPL v3.0 (contact for other licencing). Copyright 2020, 2021 Colin Nolan.
 
 This work is in no way related to the company that I work for.
