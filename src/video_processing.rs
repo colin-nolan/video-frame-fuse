@@ -1,8 +1,8 @@
 use std::string::ToString;
 
 use cached::proc_macro::cached;
-use log::info;
-use opencv::core::{Mat, Vector};
+use log::{info, warn};
+use opencv::core::{Mat, MatTraitConst, Vector};
 use opencv::imgcodecs::imencode;
 use opencv::imgproc::{cvt_color, threshold, THRESH_BINARY, THRESH_OTSU};
 use opencv::prelude::{VideoCaptureTrait, VideoCaptureTraitConst};
@@ -29,7 +29,7 @@ pub fn get_number_of_frames(video_location: &str) -> u64 {
         video_location
     )) as u64;
     close_video(video_capture);
-    return number_of_frames;
+    number_of_frames
 }
 
 // Note: the "cached" library does not offer a cache store that is able to be resized dynamically.
@@ -42,7 +42,7 @@ pub(crate) fn get_frame_image(
     image_format: ImageType,
 ) -> Vec<u8> {
     let mut frame = get_frame_from_video(video_location, frame_number);
-    return frame_matrix_to_vec(&mut frame, image_format);
+    frame_matrix_to_vec(&mut frame, image_format)
 }
 
 #[cached(size = 25)]
@@ -56,7 +56,7 @@ pub fn get_greyscale_frame_image(
         "Could not create greyscale copy of frame number {} in video: {}",
         frame_number, video_location
     ));
-    return frame_matrix_to_vec(&mut greyscale_frame, image_format);
+    frame_matrix_to_vec(&mut greyscale_frame, image_format)
 }
 
 #[cached(size = 25)]
@@ -86,13 +86,18 @@ pub fn get_black_and_white_frame_image(
         },
     )
     .expect("Could not convert to black and white");
-    return frame_matrix_to_vec(&mut black_and_white_frame, image_format);
+    frame_matrix_to_vec(&mut black_and_white_frame, image_format)
 }
 
 pub fn frame_matrix_to_vec(frame: &mut Mat, convert_to: ImageType) -> Vec<u8> {
     let parameters = &Default::default();
     let buffer = &mut Vector::<u8>::new();
 
+    // TODO: handle unwrap
+    if frame.empty().unwrap() {
+        warn!("Empty frame found");
+        return Vec::new();
+    }
     imencode(
         &format!(".{}", convert_to.to_string()),
         frame,
@@ -103,7 +108,7 @@ pub fn frame_matrix_to_vec(frame: &mut Mat, convert_to: ImageType) -> Vec<u8> {
         "Could not encode image into: {}",
         convert_to.to_string()
     ));
-    return buffer.to_vec();
+    buffer.to_vec()
 }
 
 fn open_video(file_name: &str) -> VideoCapture {
@@ -122,20 +127,20 @@ fn get_frame_from_video(video_location: String, frame_number: u64) -> Mat {
     let mut video_capture = open_video(&video_location);
     let frame = get_frame(&mut video_capture, frame_number);
     close_video(video_capture);
-    return frame;
+    frame
 }
 
 fn get_frame(video_capture: &mut VideoCapture, frame_number: u64) -> Mat {
     video_capture
         .set(CAP_PROP_POS_FRAMES, frame_number as f64)
         .unwrap();
-    return get_next_frame(video_capture);
+    get_next_frame(video_capture)
 }
 
 fn get_next_frame(video_capture: &mut VideoCapture) -> Mat {
     let mut frame = opencv::core::Mat::default();
     video_capture.read(&mut frame).unwrap();
-    return frame;
+    frame
 }
 
 fn frame_to_greyscale(frame: &Mat) -> Result<Mat, Error> {

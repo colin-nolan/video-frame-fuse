@@ -53,7 +53,7 @@ pub fn create_video_nodes(
         }
     }
 
-    return node_store;
+    node_store
 }
 
 pub fn create_original_view(
@@ -212,7 +212,7 @@ pub fn create_frame_view(
                 config_change_handler,
             ));
 
-            return file_informations;
+            file_informations
         }),
     )
 }
