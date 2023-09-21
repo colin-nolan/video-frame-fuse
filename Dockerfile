@@ -1,7 +1,7 @@
 ##################################################
 # Builder
 ##################################################
-FROM ubuntu:20.04 as builder
+FROM ubuntu:22.04 as builder
 
 SHELL ["/bin/bash", "-c"]
 
@@ -24,7 +24,7 @@ ENV RUSTUP_HOME=/opt/rustup
 ENV PATH="${PATH}:/opt/cargo/bin"
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.56.0 --profile default --no-modify-path -y
+    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.72.1 --profile default --no-modify-path -y
 # Allow unknown users to cargo
 RUN mkdir /.cargo && chmod 777 /.cargo
 
@@ -56,6 +56,8 @@ RUN apt-get install -y --no-install-recommends \
         python3-pip \
         wget
 
+RUN git config --global --add safe.directory '*'
+
 # XXX: will break on non amd64, e.g. RPi
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.13.5/yq_linux_amd64 -O /usr/bin/yq \
     && chmod +x /usr/bin/yq
@@ -85,20 +87,3 @@ RUN ./run-release-build.sh .
 FROM scratch AS export
 
 COPY --from=packager /usr/local/src/video-frame-fuse/target/release/video-frame-fuse /video-frame-fuse
-
-
-##################################################
-# Production
-##################################################
-FROM ubuntu:20.04 as production
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libopencv-dev \
-        fuse \
-   && rm -rf /var/lib/apt/lists/*
-
-COPY --from=packager /usr/local/src/video-frame-fuse/target/release/video-frame-fuse /usr/local/bin/
-
-ENTRYPOINT ["video-frame-fuse"]
