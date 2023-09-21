@@ -28,6 +28,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 # Allow unknown users to cargo
 RUN mkdir /.cargo && chmod 777 /.cargo
 
+RUN git config --global --add safe.directory '*'
+
 
 ##################################################
 # Formatter
@@ -55,8 +57,6 @@ RUN apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
         wget
-
-RUN git config --global --add safe.directory '*'
 
 # XXX: will break on non amd64, e.g. RPi
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.13.5/yq_linux_amd64 -O /usr/bin/yq \
