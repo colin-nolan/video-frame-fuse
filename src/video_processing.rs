@@ -1,5 +1,3 @@
-use std::string::ToString;
-
 use cached::proc_macro::cached;
 use log::{info, warn};
 use opencv::core::{Mat, MatTraitConst, Vector};
@@ -8,9 +6,9 @@ use opencv::imgproc::{cvt_color, threshold, THRESH_BINARY, THRESH_OTSU};
 use opencv::prelude::{VideoCaptureTrait, VideoCaptureTraitConst};
 use opencv::videoio::{VideoCapture, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES};
 use opencv::{imgproc, Error};
-use strum_macros::EnumIter;
+use strum_macros::{Display, EnumIter};
 
-#[derive(EnumIter, Clone, Copy, strum_macros::ToString, PartialEq, Eq, Hash)]
+#[derive(EnumIter, Clone, Copy, Display, PartialEq, Eq, Hash)]
 pub enum ImageType {
     #[strum(serialize = "jpg")]
     JPG,
@@ -93,8 +91,7 @@ pub fn frame_matrix_to_vec(frame: &mut Mat, convert_to: ImageType) -> Vec<u8> {
     let parameters = &Default::default();
     let buffer = &mut Vector::<u8>::new();
 
-    // TODO: handle unwrap
-    if frame.empty().unwrap() {
+    if frame.empty() {
         warn!("Empty frame found");
         return Vec::new();
     }

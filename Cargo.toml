@@ -5,23 +5,23 @@ authors = ["Colin Nolan <cn580@alumni.york.ac.uk>"]
 edition = "2021"
 
 [dependencies]
-opencv = "0.56.0"
+opencv = "0.84.5"
 fuse = { git = "https://github.com/colin-nolan/fuse-rs.git", rev="05c2acb4827a8266f8e8c55a13a4f75b7149e164" }
 libc = "0.2"
 users = "0.11"
 lazy_static = "1.4.0"
-strum = "0.20"
-strum_macros = "0.20"
-cached = "0.22.0"
-csv = "1.1.5"
-log = "0.4.11"
-env_logger = "0.8.2"
+strum = "0.25"
+strum_macros = "0.25"
+cached = "0.45.1"
+csv = "1.2.2"
+log = "0.4.20"
+env_logger = "0.10.0"
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.8"
-clap = "2.33.3"
-indoc = "1.0.3"
-daemonize = "0.4.1"
+serde_yaml = "0.9"
+clap = "2.34.0"
+indoc = "2.0.4"
+daemonize = "0.5.0"
 
 [dev-dependencies]
-test-case = "1.0.0"
-itertools = "0.10.0"
+test-case = "3.2.1"
+itertools = "0.11.0"
