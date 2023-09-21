@@ -149,7 +149,7 @@ tests*
 
 ##### Docker
 ```shell
-docker run --privileged  -u $(id -u):$(id -g) --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
+docker run --privileged --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:tester /checkout/scripts/test/run-acceptance-tests.sh
 ```
 
 
