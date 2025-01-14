@@ -3,6 +3,7 @@ use log::{info, warn};
 use opencv::core::{Mat, MatTraitConst, Vector};
 use opencv::imgcodecs::imencode;
 use opencv::imgproc::{cvt_color, threshold, THRESH_BINARY, THRESH_OTSU};
+use opencv::prelude::VectorToVec;
 use opencv::prelude::{VideoCaptureTrait, VideoCaptureTraitConst};
 use opencv::videoio::{VideoCapture, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_FRAMES};
 use opencv::{imgproc, Error};

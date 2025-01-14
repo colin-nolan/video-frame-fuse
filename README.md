@@ -82,7 +82,7 @@ https://github.com/zargony/fuse-rs/blob/master/README.md#dependencies
 
 ### Linux (Debian)
 To install on a Debian based system:
-```sh 
+```sh
 apt install fuse
 ```
 
@@ -96,7 +96,7 @@ brew cask install osxfuse
 
 
 ## Development
-### Building 
+### Building
 FUSE libraries and headers are required to build the software. The package is usually called `libfuse-dev` or
 `fuse-devel`. `pkg-config` is also required for locating libraries and headers. Additional tools and libraries
 required for the build can be [found in the Dockerfile](Dockerfile).
@@ -104,13 +104,13 @@ required for the build can be [found in the Dockerfile](Dockerfile).
 #### Local
 ```shell
 cargo build --release
-# Binary found in the release build directory: target/release/video-frame-fuse 
+# Binary found in the release build directory: target/release/video-frame-fuse
 ```
 
 #### Docker
 ```shell
 docker build --target export --output output .
-# Binary found in the output directory: output/video-frame-fuse 
+# Binary found in the output directory: output/video-frame-fuse
 ```
 
 ### Testing
@@ -144,7 +144,7 @@ Before running the acceptance tests, build the software. Run the tests:
 ```shell
 ./scripts/test/run-acceptance-tests.sh [shellspec-args]
 ```
-*Note: see the [testing section in the Dockerfile](Dockerfile) for details about what tooling is required to run the 
+*Note: see the [testing section in the Dockerfile](Dockerfile) for details about what tooling is required to run the
 tests*
 
 ##### Docker
@@ -154,7 +154,7 @@ docker run --privileged --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:t
 
 
 ### Mac Development
-[See README for the OpenCV Rust library](https://github.com/twistedfall/opencv-rust#macos-package), which also includes a 
+[See README for the OpenCV Rust library](https://github.com/twistedfall/opencv-rust#macos-package), which also includes a
 troubleshooting section. If the build fails with a `dyld: Library not loaded: @rpath/libclang.dylib` error message, and
 you are using Command Line Tools, try setting:
 ```shell
@@ -171,6 +171,6 @@ export DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/usr/lib/"
 
 
 ## Legal
-AGPL v3.0 (contact for other licencing). Copyright 2020, 2021, 2023 Colin Nolan.
+AGPL v3.0 (contact for other licencing). Copyright 2020, 2021, 2023, 2025 Colin Nolan.
 
 This work is in no way related to the company that I work for.

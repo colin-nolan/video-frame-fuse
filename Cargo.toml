@@ -5,7 +5,7 @@ authors = ["Colin Nolan <cn580@alumni.york.ac.uk>"]
 edition = "2021"
 
 [dependencies]
-opencv = "0.84.5"
+opencv = "0.94.1"
 fuse = { git = "https://github.com/colin-nolan/fuse-rs.git", rev="05c2acb4827a8266f8e8c55a13a4f75b7149e164" }
 libc = "0.2"
 users = "0.11"
