@@ -1,7 +1,7 @@
 ##################################################
 # Builder
 ##################################################
-FROM ubuntu:22.04 as builder
+FROM ubuntu:24.04 AS builder
 
 SHELL ["/bin/bash", "-c"]
 
@@ -24,7 +24,7 @@ ENV RUSTUP_HOME=/opt/rustup
 ENV PATH="${PATH}:/opt/cargo/bin"
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.72.1 --profile default --no-modify-path -y
+    | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.84.1 --profile default --no-modify-path -y
 # Allow unknown users to cargo
 RUN mkdir /.cargo && chmod 777 /.cargo
 
@@ -34,7 +34,7 @@ RUN git config --global --add safe.directory '*'
 ##################################################
 # Formatter
 ##################################################
-FROM builder as formatter
+FROM builder AS formatter
 
 ENTRYPOINT ["cargo", "fmt"]
 
@@ -42,11 +42,11 @@ ENTRYPOINT ["cargo", "fmt"]
 ##################################################
 # Tester
 ##################################################
-FROM builder as tester
+FROM builder AS tester
 
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --prefix /usr/local --yes
 
-RUN cargo install --git https://github.com/kornelski/dssim.git --tag 3.1.0 --root /usr/
+RUN cargo install --git https://github.com/kornelski/dssim.git --tag 3.3.4 --root /usr/ dssim
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
@@ -63,13 +63,13 @@ RUN wget https://github.com/mikefarah/yq/releases/download/v4.13.5/yq_linux_amd6
     && chmod +x /usr/bin/yq
 
 COPY tests/acceptance/scripts/image/requirements.txt /tmp/test-requirements.txt
-RUN pip install -r /tmp/test-requirements.txt
+RUN pip install --break-system-packages -r /tmp/test-requirements.txt
 
 
 ##################################################
 # Package for production
 ##################################################
-FROM builder as packager
+FROM builder AS packager
 
 WORKDIR /usr/local/src/video-frame-fuse
 COPY scripts/build/run-release-build.sh .
