@@ -2,11 +2,10 @@ name: CI
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
-    pull_request:
-      types:
-        - opened
+  pull_request:
+    types:
+      - opened
 
 jobs:
   whitebox-test:
@@ -15,22 +14,22 @@ jobs:
       # Note: unfortunately GitHub doesn't offer a good mechanism for step reuse (e.g. YAML anchors)
       # Required for use of Docker layer cache
       - name: Set up Docker Buildx (required for caching)
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
       - name: Setup Docker layer cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.repository }}
           restore-keys: ${{ runner.os }}-buildx-
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
 
       - name: Build format checker
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           tags: colinnolan/video-frame-fuse:formatter
           context: .
@@ -43,7 +42,7 @@ jobs:
         run: docker run --rm -v "${PWD}:/checkout:ro" --entrypoint bash colinnolan/video-frame-fuse:formatter /checkout/scripts/test/run-style-check.sh
 
       - name: Build tester
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           tags: colinnolan/video-frame-fuse:tester
           context: .
@@ -61,22 +60,22 @@ jobs:
       # Note: unfortunately GitHub doesn't offer a good mechanism for step reuse (e.g. YAML anchors)
       # Required for use of Docker layer cache
       - name: Set up Docker Buildx (required for caching)
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
       - name: Setup Docker layer cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.repository }}
           restore-keys: ${{ runner.os }}-buildx-
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
 
       - name: Build builder
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           tags: colinnolan/video-frame-fuse:builder
           context: .
@@ -89,7 +88,7 @@ jobs:
         run: docker run --rm -v "${PWD}:/checkout" colinnolan/video-frame-fuse:builder /checkout/scripts/build/run-release-build.sh
 
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: video-frame-fuse
           path: target/release/video-frame-fuse
@@ -101,22 +100,22 @@ jobs:
       # Note: unfortunately GitHub doesn't offer a good mechanism for step reuse (e.g. YAML anchors)
       # Required for use of Docker layer cache
       - name: Set up Docker Buildx (required for caching)
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
       - name: Setup Docker layer cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.repository }}
           restore-keys: ${{ runner.os }}-buildx-
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
 
       - name: Build tester
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           tags: colinnolan/video-frame-fuse:tester
           context: .
@@ -126,7 +125,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: video-frame-fuse
           path: target/release/
